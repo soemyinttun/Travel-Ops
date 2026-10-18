@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useApp } from '../state'
-import { buildICS, download, googleCalendarUrl, plusDay, type CalEvent } from '../ics'
+import { buildEvents, buildICS, download, googleCalendarUrl, plusDay, type CalEvent } from '../ics'
+import { CalendarDialog } from '../components/CalendarDialog'
 import { Card, Loading, btnGhost, daysBetween, today } from '../components/ui'
 import { Icon } from '../components/Icon'
 import { Chip, FilterChips, Hint, PageHead, RecordCard, StatTile, Strip, type Tone } from '../components/kit'
@@ -21,24 +22,11 @@ export default function Trips() {
   const [cursor, setCursor] = useState(() => { const d = new Date(); return { y: d.getFullYear(), m: d.getMonth() } })
   const [sel, setSel] = useState<string | null>(today())
   const [region, setRegion] = useState('all')
+  const [calendar, setCalendar] = useState(false)
   const [roster, setRoster] = useState<{ pkg: Pkg; date: string } | null>(null)
 
-  const events = useMemo<CalEvent[]>(() => {
-    if (!data) return []
-    const name = new Map(data.customers.map((c) => [c.id!, c.name]))
-    const pkg = new Map(data.packages.map((p) => [p.id, p]))
-    const out: CalEvent[] = []
-    for (const b of data.bookings) {
-      if (b.status !== 'confirmed') continue
-      const p = pkg.get(b.packageId)
-      if (!p) continue
-      out.push({ uid: `trip-${b.id}`, kind: 'trip', title: `${name.get(b.customerId)} · ${p.name}`, start: b.departDate, end: plusDay(b.departDate, p.days - 1), desc: `${p.name} to ${b.destination}, ${b.pax} pax` })
-    }
-    for (const c of data.visas) if (c.deadline && !DONE.includes(c.stage)) out.push({ uid: `visa-${c.id}`, kind: 'visa', title: `Visa due: ${name.get(c.customerId)} (${c.kind})`, start: c.deadline, desc: `Stage: ${c.stage}` })
-    for (const c of data.passports) if (c.deadline && !DONE.includes(c.stage)) out.push({ uid: `pp-${c.id}`, kind: 'passport', title: `Passport due: ${name.get(c.customerId)} (${c.kind})`, start: c.deadline, desc: `Stage: ${c.stage}` })
-    for (const t of data.tickets) out.push({ uid: `fl-${t.id}`, kind: 'flight', title: `Flight ${t.from}→${t.to}: ${name.get(t.customerId)}`, start: t.date, desc: `${t.airline} · ${t.direction}` })
-    return out
-  }, [data])
+  // The same events the file download and the live calendar link use.
+  const events = useMemo<CalEvent[]>(() => (data ? buildEvents(data) : []), [data])
 
   const byDay = useMemo(() => {
     const m = new Map<string, CalEvent[]>()
@@ -65,7 +53,6 @@ export default function Trips() {
 
   const monthPrefix = `${cursor.y}-${String(cursor.m + 1).padStart(2, '0')}`
   const exportMonth = () => download(`travel-${monthPrefix}.ics`, buildICS(events.filter((e) => e.start.startsWith(monthPrefix))), 'text/calendar')
-  const exportUpcoming = () => download('travel-upcoming.ics', buildICS(events.filter((e) => (e.end ?? e.start) >= t)), 'text/calendar')
 
   // Readiness for confirmed trips in the next 45 days
   const custs = new Map(data.customers.map((c) => [c.id!, c]))
@@ -91,7 +78,7 @@ export default function Trips() {
   return (
     <div className="space-y-4">
       <PageHead eyebrow="Trips and schedule" title="Trips" sub="Departures, visa and passport deadlines, and flights."
-        action={<button className={`${btnGhost} inline-flex items-center gap-2`} onClick={exportUpcoming}><Icon name="trips" className="h-4 w-4" />Export calendar (.ics)</button>} />
+        action={<button className={`${btnGhost} inline-flex items-center gap-2`} onClick={() => setCalendar(true)}><Icon name="trips" className="h-4 w-4" />Add to calendar</button>} />
 
       <div className="inline-flex rounded-xl bg-indigo-soft/50 p-1 text-sm font-semibold" role="tablist">
         {(['agenda', 'grid'] as const).map((v) => (
@@ -187,6 +174,7 @@ export default function Trips() {
           )}
         </>
       )}
+      {calendar && <CalendarDialog onClose={() => setCalendar(false)} />}
       {roster && <RosterDialog bookings={data.bookings.filter((b) => b.status === 'confirmed' && b.packageId === roster.pkg.id && b.departDate === roster.date)} pkg={roster.pkg} date={roster.date} onClose={() => setRoster(null)} />}
     </div>
   )

@@ -40,7 +40,7 @@ The sign-in screen shows the options your company turned on:
 | **Packages** | Trip packages with price, cost and profit. You can change prices here. |
 | **Visa** / **Passport** | Move each case step by step. See deadlines. |
 | **Tickets** | Air tickets and commission. |
-| **Trips** | Calendar of trips and deadlines. Add events to Google Calendar. |
+| **Trips** | Agenda and calendar of trips, deadlines and flights. **Add to calendar** puts them in Google Calendar or Apple Calendar. |
 | **Heatmaps** | Maps of where customers travel and which towns they come from. |
 | **Bookings** | Add, confirm, finish or cancel bookings. |
 | **Customers** | Customer list. Passports that expire soon are shown in colour. |
@@ -176,6 +176,23 @@ Menu names in Google Cloud and Supabase change from time to time. If they differ
 
 **Do not turn on CAPTCHA yet.** If you switch on Supabase's CAPTCHA protection, sign-in stops working, because the app does not send the CAPTCHA answer yet.
 
+### Calendar link for Google and Apple Calendar (one time)
+
+People can add the company trips to their own phone calendar. Trips → **Add to calendar** → **Create my link** gives a private link that Google Calendar and Apple Calendar keep up to date by themselves. For this to work, the IT person sets it up once:
+
+1. Supabase → **SQL Editor** → run `supabase/migrations/0003_calendar_feeds.sql` (after 0001 and 0002).
+2. Deploy the function in `supabase/functions/calendar` **with the login check switched off** (calendar apps cannot sign in):
+   - With the Supabase command line: `supabase functions deploy calendar --no-verify-jwt`
+   - Or in the dashboard: **Edge Functions** → **Deploy a new function** → name it `calendar`, create two files `index.ts` and `calendar.ts` with the same text as in the folder, turn **Verify JWT** off, deploy.
+3. In the app: **Trips** → **Add to calendar** → choose what to include → **Create my link** → **Add to Google Calendar** or **Add to Apple Calendar**.
+
+Good to know:
+- **Keep the link private.** Anyone who has it can see customer names and trip dates. **Make a new link** replaces it (the old one stops working). **Turn off** removes it.
+- A link stops working by itself when that person's access is removed in Admin.
+- Apple Calendar refreshes about every hour. Google Calendar decides by itself, usually every 12 to 24 hours, so a new trip may take a while to appear. That is Google's rule, not a fault.
+- Phone numbers, passport numbers and money are never put in a calendar.
+- Without the one-time setup (or without sign-in), **Download .ics file** still works.
+
 ## 9. Problems?
 
 | Problem | What to do |
@@ -247,7 +264,7 @@ Sign-in စာမျက်နှာတွင် သင့်ကုမ္ပဏ�
 | **Packages** | ခရီးစဉ် package များ၏ ဈေး၊ ကုန်ကျစရိတ်နှင့် အမြတ်။ ဈေးကို ဤနေရာတွင် ပြင်နိုင်သည်။ |
 | **Visa** / **Passport** | Case တစ်ခုချင်းစီကို အဆင့်လိုက် ရွှေ့ရန်။ နောက်ဆုံးရက်များကို ကြည့်ရန်။ |
 | **Tickets** | လေယာဉ်လက်မှတ်များနှင့် commission။ |
-| **Trips** | ခရီးစဉ်များနှင့် နောက်ဆုံးရက်များ၏ ပြက္ခဒိန်။ Google Calendar သို့ ထည့်နိုင်သည်။ |
+| **Trips** | ခရီးစဉ်၊ နောက်ဆုံးရက်နှင့် လေယာဉ်ခရီးများ၏ အစီအစဉ်နှင့် ပြက္ခဒိန်။ **Add to calendar** ဖြင့် Google Calendar သို့မဟုတ် Apple Calendar ထဲသို့ ထည့်နိုင်ပါသည်။ |
 | **Heatmaps** | ဖောက်သည်များ ခရီးသွားသည့်နေရာနှင့် လာရာမြို့များကို မြေပုံဖြင့် ပြသည်။ |
 | **Bookings** | Booking ထည့်ရန်၊ အတည်ပြုရန်၊ ပြီးဆုံးရန် သို့မဟုတ် ပယ်ဖျက်ရန်။ |
 | **Customers** | ဖောက်သည်စာရင်း။ မကြာမီ သက်တမ်းကုန်မည့် ပတ်စ်ပို့များကို အရောင်ဖြင့် ပြသည်။ |
@@ -382,6 +399,23 @@ Google Cloud နှင့် Supabase ၏ menu အမည်များသည်
 **Vercel–Supabase integration (မဖြစ်မနေ မဟုတ်):** Vercel → **Integrations** (သို့မဟုတ် **Storage**) → **Supabase** → project ကို ချိတ်ပါ။ ၎င်းက `NEXT_PUBLIC_SUPABASE_URL` နှင့် `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` ကဲ့သို့ variable များ ထည့်ပေးပါသည်။ App က ထိုအမည်များကိုလည်း ဖတ်သဖြင့် `VITE_SUPABASE_…` များကို ကိုယ်တိုင် ရိုက်ရန် မလိုပါ။ Integration က secret key များ (`SUPABASE_SECRET_KEY` စသည်) ကိုလည်း ထည့်ပါသည်။ App က ၎င်းတို့ကို ဘယ်တော့မှ မဖတ်ပါ၊ secret key တစ်ခုခု `VITE_` သို့မဟုတ် `NEXT_PUBLIC_` variable ထဲ ရောက်နေလျှင် build က error ပြပြီး **ရပ်သွားပါမည်**။ ပြန် deploy လုပ်ပြီးနောက် **Admin** → **Connection check** တွင် မည်သည့်အမည်များ တွေ့ရှိသည်ကို ကြည့်နိုင်ပါသည်။
 
 **CAPTCHA ကို ယခု မဖွင့်ပါနှင့်။** Supabase ၏ CAPTCHA ကာကွယ်မှုကို ဖွင့်လျှင် app က CAPTCHA အဖြေကို မပို့သေးသဖြင့် sign in ဝင်၍ မရတော့ပါ။
+
+### Google နှင့် Apple Calendar အတွက် calendar link (တစ်ကြိမ်တည်း)
+
+ကုမ္ပဏီ၏ ခရီးစဉ်များကို မိမိဖုန်း calendar ထဲသို့ ထည့်နိုင်ပါသည်။ Trips → **Add to calendar** → **Create my link** ကိုနှိပ်လျှင် Google Calendar နှင့် Apple Calendar က ကိုယ်တိုင် ပြန်ပြန်စစ်ပေးသည့် ကိုယ်ပိုင် link ရပါမည်။ ဤအတွက် IT တာဝန်ခံက တစ်ကြိမ်တည်း setup လုပ်ပေးရပါမည်-
+
+1. Supabase → **SQL Editor** → `supabase/migrations/0003_calendar_feeds.sql` ကို run ပါ (0001 နှင့် 0002 ပြီးမှ)။
+2. `supabase/functions/calendar` ထဲက function ကို **login စစ်ဆေးမှု ပိတ်ပြီး** deploy လုပ်ပါ (calendar app များက sign in မဝင်နိုင်၍)-
+   - Supabase command line ဖြင့်- `supabase functions deploy calendar --no-verify-jwt`
+   - သို့မဟုတ် dashboard တွင်- **Edge Functions** → **Deploy a new function** → အမည် `calendar` ပေးပါ၊ folder ထဲက စာသားအတိုင်း ဖိုင်နှစ်ခု `index.ts` နှင့် `calendar.ts` ဖန်တီးပါ၊ **Verify JWT** ကို ပိတ်ပြီး deploy လုပ်ပါ။
+3. App တွင်- **Trips** → **Add to calendar** → ထည့်လိုသည့်အရာများ ရွေးပါ → **Create my link** → **Add to Google Calendar** သို့မဟုတ် **Add to Apple Calendar**။
+
+သိထားသင့်သည်များ-
+- **Link ကို လျှို့ဝှက်ထားပါ။** Link ရှိသူတိုင်း ဖောက်သည်အမည်နှင့် ခရီးစဉ်ရက်များကို မြင်နိုင်ပါသည်။ **Make a new link** က အသစ်လဲပေးပြီး အဟောင်း ရပ်သွားပါမည်။ **Turn off** က ဖယ်ရှားပါသည်။
+- Admin တွင် ထိုသူ၏ ဝင်ခွင့်ကို ဖယ်လိုက်လျှင် သူ၏ link သည် အလိုအလျောက် ရပ်သွားပါမည်။
+- Apple Calendar သည် တစ်နာရီခန့်တစ်ကြိမ် ပြန်စစ်ပါသည်။ Google Calendar သည် ကိုယ်ပိုင်စည်းမျဉ်းဖြင့် များသောအားဖြင့် ၁၂ နာရီမှ ၂၄ နာရီအတွင်း ပြန်စစ်သဖြင့် ခရီးစဉ်အသစ် ပေါ်လာရန် အချိန်ယူနိုင်ပါသည်။ ၎င်းသည် Google ၏ စည်းမျဉ်းဖြစ်ပြီး အမှားမဟုတ်ပါ။
+- ဖုန်းနံပါတ်၊ passport နံပါတ်နှင့် ငွေကြေးကို calendar ထဲ ဘယ်တော့မှ မထည့်ပါ။
+- တစ်ကြိမ်တည်း setup မလုပ်ရသေးလျှင် (သို့မဟုတ် sign in မဝင်ထားလျှင်) **Download .ics file** က ဆက်လက် အသုံးပြုနိုင်ပါသည်။
 
 ## ၉။ ပြဿနာ ရှိပါသလား
 

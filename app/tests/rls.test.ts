@@ -153,3 +153,50 @@ describe('realtime', () => {
     expect(rows.map((r) => r.tablename)).toEqual(['bookings', 'customers', 'packages', 'passports', 'tickets', 'visas'])
   })
 })
+
+describe('calendar links', () => {
+  it('approved people can make, change and delete their own link', async () => {
+    await as(STAFF, 'authenticated', async () => {
+      expect((await attempt(`insert into public.calendar_feeds (user_id) values ('${STAFF}')`)).ok).toBe(true)
+      const row = (await db.query<{ token: string; include_trips: boolean }>('select token, include_trips from public.calendar_feeds')).rows[0]!
+      expect(row.token).toMatch(/^[0-9a-f-]{36}$/)
+      expect(row.include_trips).toBe(true)
+      expect((await attempt(`update public.calendar_feeds set include_flights = false where user_id = '${STAFF}'`)).ok).toBe(true)
+      expect((await db.query<{ include_flights: boolean }>('select include_flights from public.calendar_feeds')).rows[0]!.include_flights).toBe(false)
+    })
+  })
+
+  it('nobody sees or changes another person\'s link, and cannot make one in their name', async () => {
+    await as(ADMIN, 'authenticated', async () => {
+      expect((await attempt(`insert into public.calendar_feeds (user_id) values ('${ADMIN}')`)).ok).toBe(true)
+      // The admin sees only their own row, even though staff made one earlier.
+      expect(await count('select 1 from public.calendar_feeds')).toBe(1)
+      expect((await attempt(`insert into public.calendar_feeds (user_id) values ('${STAFF}')`)).ok).toBe(false)
+      await db.exec(`update public.calendar_feeds set include_trips = false where user_id = '${STAFF}'`) // matches no visible row
+    })
+    await as(STAFF, 'authenticated', async () => {
+      expect(await count('select 1 from public.calendar_feeds')).toBe(1)
+      expect((await db.query<{ include_trips: boolean }>('select include_trips from public.calendar_feeds')).rows[0]!.include_trips).toBe(true)
+      await db.exec(`delete from public.calendar_feeds where user_id = '${ADMIN}'`) // matches no visible row
+    })
+    await as(ADMIN, 'authenticated', async () => { expect(await count('select 1 from public.calendar_feeds')).toBe(1) })
+  })
+
+  it('pending people and anonymous visitors cannot read or make a link', async () => {
+    await as(PENDING, 'authenticated', async () => {
+      expect(await count('select 1 from public.calendar_feeds')).toBe(0)
+      expect((await attempt(`insert into public.calendar_feeds (user_id) values ('${PENDING}')`)).ok).toBe(false)
+    })
+    await as(null, 'anon', async () => { expect((await attempt('select * from public.calendar_feeds')).ok).toBe(false) })
+  })
+
+  it('a person can switch their link off, and a new link needs a new secret', async () => {
+    await as(STAFF, 'authenticated', async () => {
+      const before = (await db.query<{ token: string }>('select token from public.calendar_feeds')).rows[0]!.token
+      await db.exec(`update public.calendar_feeds set token = gen_random_uuid() where user_id = '${STAFF}'`)
+      expect((await db.query<{ token: string }>('select token from public.calendar_feeds')).rows[0]!.token).not.toBe(before)
+      await db.exec(`delete from public.calendar_feeds where user_id = '${STAFF}'`)
+      expect(await count('select 1 from public.calendar_feeds')).toBe(0)
+    })
+  })
+})
