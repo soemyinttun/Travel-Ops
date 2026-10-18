@@ -2,7 +2,7 @@ import { useState } from 'react'
 import * as store from '../store'
 import { useApp } from '../state'
 import { PASSPORT_KINDS, PASSPORT_STAGES, VISA_KINDS, VISA_STAGES, type Case } from '../types'
-import { Card, Chart, Loading, Page, Stat, btn, daysBetween, inp, today } from '../components/ui'
+import { Card, Chart, Loading, Page, Stat, btn, daysBetween, formGrid, inp, today } from '../components/ui'
 import { CustomerSelect } from '../components/CustomerSelect'
 
 const CFG = {
@@ -60,7 +60,7 @@ export default function Pipeline({ kind }: { kind: 'visa' | 'passport' }) {
       </div>
 
       <Card title="New case">
-        <form onSubmit={add} className="flex flex-wrap gap-2">
+        <form onSubmit={add} className={formGrid}>
           <CustomerSelect value={form.customerId} onChange={(id) => setForm({ ...form, customerId: id })} />
           <select className={inp} value={form.kind} onChange={(e) => setForm({ ...form, kind: e.target.value })}>{cfg.kinds.map((k) => <option key={k}>{k}</option>)}</select>
           <input className={`${inp} w-32`} type="number" min={0} value={form.fee} onChange={(e) => setForm({ ...form, fee: +e.target.value })} aria-label="Fee (Ks)" />
@@ -85,8 +85,8 @@ export default function Pipeline({ kind }: { kind: 'visa' | 'passport' }) {
                       <div className="text-xs text-slate-500">{c.kind} · {money(c.fee)} · applied {c.appliedAt}</div>
                       {c.deadline && <div className={`text-xs ${late ? 'font-semibold text-rose-600' : 'text-slate-500'}`}>due {c.deadline}</div>}
                       <div className="mt-1 flex justify-between">
-                        <button aria-label="Move back" className="px-2 text-slate-500 hover:text-teal-700" onClick={() => move(c, -1)}>◀</button>
-                        <button aria-label="Move forward" className="px-2 text-slate-500 hover:text-teal-700" onClick={() => move(c, 1)}>▶</button>
+                        <button aria-label="Move back" className="px-2 text-slate-500 hover:text-teal-700" onClick={() => move(c, -1)}>‹</button>
+                        <button aria-label="Move forward" className="px-2 text-slate-500 hover:text-teal-700" onClick={() => move(c, 1)}>›</button>
                       </div>
                     </div>
                   )

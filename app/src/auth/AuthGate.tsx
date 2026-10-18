@@ -1,5 +1,6 @@
 import { useState, type FormEvent, type ReactNode } from 'react'
 import { Loading, btn, btnGhost, inp } from '../components/ui'
+import { Logo } from '../components/Icon'
 import { useAuth } from './AuthProvider'
 import { AUTH_METHODS, type AuthMethod } from './providers'
 
@@ -15,9 +16,9 @@ export function AuthGate({ children, methods = AUTH_METHODS }: { children: React
 
 function Screen({ children }: { children: ReactNode }) {
   return (
-    <div className="flex min-h-full items-center justify-center bg-slate-50 p-4">
-      <div className="w-full max-w-sm space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="text-lg font-bold text-teal-800">🏔️ SSM Travel &amp; Tours</div>
+    <div className="flex min-h-full items-center justify-center bg-slate-50 p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
+      <div className="w-full max-w-sm space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+        <Logo className="text-lg" />
         {children}
       </div>
     </div>

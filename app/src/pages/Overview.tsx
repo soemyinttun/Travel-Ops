@@ -87,8 +87,8 @@ export default function Overview() {
         </Card>
         <Card title="Alerts">
           <ul className="space-y-1 text-sm">
-            <li className={overdue.length ? 'text-rose-700' : 'text-slate-400'}>⏰ {overdue.length} visa/passport cases past deadline</li>
-            <li className={passportRisk.length ? 'text-amber-700' : 'text-slate-400'}>📘 {passportRisk.length} upcoming travellers with passport valid &lt; 6 months at departure</li>
+            <li className={overdue.length ? 'text-rose-700' : 'text-slate-400'}>{overdue.length} visa/passport cases past deadline</li>
+            <li className={passportRisk.length ? 'text-amber-700' : 'text-slate-400'}>{passportRisk.length} upcoming travellers with passport valid &lt; 6 months at departure</li>
           </ul>
         </Card>
       </div>

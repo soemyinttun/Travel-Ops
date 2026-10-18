@@ -80,7 +80,7 @@ export default function Trips() {
     <Page title="Trips & schedule" sub="Departures, visa/passport deadlines and flights. Export to Google Calendar or any calendar app (.ics).">
       <Card
         title={first.toLocaleString('en', { month: 'long', year: 'numeric' })}
-        right={<div className="flex flex-wrap gap-2"><button className={btnGhost} onClick={() => nav(-1)}>◀</button><button className={btnGhost} onClick={() => setCursor({ y: new Date().getFullYear(), m: new Date().getMonth() })}>Today</button><button className={btnGhost} onClick={() => nav(1)}>▶</button><button className={btnGhost} onClick={exportMonth}>⬇ Month .ics</button><button className={btnGhost} onClick={exportUpcoming}>⬇ Upcoming .ics</button></div>}
+        right={<div className="flex flex-wrap gap-2"><button className={btnGhost} onClick={() => nav(-1)}>Prev</button><button className={btnGhost} onClick={() => setCursor({ y: new Date().getFullYear(), m: new Date().getMonth() })}>Today</button><button className={btnGhost} onClick={() => nav(1)}>Next</button><button className={btnGhost} onClick={exportMonth}>Month .ics</button><button className={btnGhost} onClick={exportUpcoming}>Upcoming .ics</button></div>}
       >
         <div className="grid grid-cols-7 gap-px overflow-hidden rounded-xl bg-slate-200 text-xs">
           {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((d) => <div key={d} className="bg-slate-50 p-1 text-center font-medium text-slate-500">{d}</div>)}
@@ -124,7 +124,7 @@ export default function Trips() {
           <tbody>
             {upcoming.map((u) => (
               <tr key={u.b.id} className="border-b last:border-0"><td className="py-1.5">{u.b.departDate}</td><td>{u.c?.name}</td><td>{u.p.name}</td>
-                {[u.passport, u.visa, u.flight].map((ok, i) => <td key={i} className={ok ? 'text-emerald-600' : 'text-rose-600'}>{ok ? '✔' : '✘ missing'}</td>)}</tr>
+                {[u.passport, u.visa, u.flight].map((ok, i) => <td key={i} className={ok ? 'text-emerald-600' : 'text-rose-600'}>{ok ? 'Yes' : 'Missing'}</td>)}</tr>
             ))}
             {!upcoming.length && <tr><td colSpan={6} className="py-3 text-slate-400">No confirmed departures in the next 45 days.</td></tr>}
           </tbody></table></div>

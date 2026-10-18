@@ -2,7 +2,7 @@ import { useState } from 'react'
 import * as store from '../store'
 import { useApp } from '../state'
 import { inRange, rangeFor, sumBy } from '../analytics'
-import { Card, Chart, Loading, Page, Seg, Stat, btn, inp, today } from '../components/ui'
+import { Card, Chart, Loading, Page, Seg, Stat, btn, formGrid, inp, today } from '../components/ui'
 import { CustomerSelect } from '../components/CustomerSelect'
 import { DESTINATIONS, ORIGINS } from '../types'
 
@@ -45,7 +45,7 @@ export default function Tickets() {
         </Card>
       </div>
       <Card title="Add ticket">
-        <form onSubmit={add} className="flex flex-wrap gap-2">
+        <form onSubmit={add} className={formGrid}>
           <CustomerSelect value={f.customerId} onChange={(id) => setF({ ...f, customerId: id })} />
           <select className={inp} value={f.direction} onChange={(e) => setF({ ...f, direction: e.target.value as 'Inbound' | 'Outbound' })}><option>Outbound</option><option>Inbound</option></select>
           <select className={inp} value={f.from} onChange={(e) => setF({ ...f, from: e.target.value })}>{CITIES.map((c) => <option key={c}>{c}</option>)}</select>

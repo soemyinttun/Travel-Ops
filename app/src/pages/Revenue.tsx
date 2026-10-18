@@ -46,7 +46,7 @@ export default function Revenue() {
 
       <Card
         title={`${metric === 'revenue' ? 'Revenue' : 'Margin'} by ${dim.toLowerCase()}`}
-        right={<div className="flex flex-wrap gap-2"><Seg options={DIMS} value={dim} onChange={setDim} /><Seg options={['revenue', 'margin'] as const} value={metric} onChange={setMetric} /></div>}
+        right={<div className="flex min-w-0 max-w-full flex-wrap gap-2"><Seg options={DIMS} value={dim} onChange={setDim} /><Seg options={['revenue', 'margin'] as const} value={metric} onChange={setMetric} /></div>}
       >
         <Chart
           height={320}
@@ -64,10 +64,10 @@ export default function Revenue() {
       <Card
         title="Head-to-head"
         right={
-          <div className="flex items-center gap-2 text-sm">
-            <select className={inp} value={a} onChange={(e) => setA(e.target.value)}>{Object.keys(SEGMENTS).map((k) => <option key={k}>{k}</option>)}</select>
+          <div className="flex w-full items-center gap-2 text-sm sm:w-auto">
+            <select className={`${inp} flex-1`} value={a} onChange={(e) => setA(e.target.value)}>{Object.keys(SEGMENTS).map((k) => <option key={k}>{k}</option>)}</select>
             <span>vs</span>
-            <select className={inp} value={b} onChange={(e) => setB(e.target.value)}>{Object.keys(SEGMENTS).map((k) => <option key={k}>{k}</option>)}</select>
+            <select className={`${inp} flex-1`} value={b} onChange={(e) => setB(e.target.value)}>{Object.keys(SEGMENTS).map((k) => <option key={k}>{k}</option>)}</select>
           </div>
         }
       >

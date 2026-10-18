@@ -102,7 +102,7 @@ export default function Heatmaps() {
     <Page
       title="Heatmaps"
       sub="Where travellers want to go and where they come from. Click a destination bubble to filter the whole app."
-      right={<div className="flex flex-wrap gap-2"><Seg options={['Destinations', 'Origins'] as const} value={mode} onChange={setMode} /><Seg options={['Enquiries', 'Bookings', 'Revenue'] as const} value={metric} onChange={setMetric} /></div>}
+      right={<div className="flex min-w-0 max-w-full flex-wrap gap-2"><Seg options={['Destinations', 'Origins'] as const} value={mode} onChange={setMode} /><Seg options={['Enquiries', 'Bookings', 'Revenue'] as const} value={metric} onChange={setMetric} /></div>}
     >
       <Card title={`${mode} — ${metric.toLowerCase()}`}>
         <div ref={el} className="h-[420px] w-full overflow-hidden rounded-2xl" />

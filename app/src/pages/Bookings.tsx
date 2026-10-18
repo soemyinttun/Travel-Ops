@@ -2,7 +2,7 @@ import { useState } from 'react'
 import * as store from '../store'
 import { useApp } from '../state'
 import { DESTINATIONS, type BookingStatus } from '../types'
-import { Card, Loading, Page, btn, inp, today } from '../components/ui'
+import { Card, Loading, Page, btn, formGrid, inp, today } from '../components/ui'
 import { CustomerSelect } from '../components/CustomerSelect'
 
 const STATUSES: BookingStatus[] = ['enquiry', 'confirmed', 'completed', 'cancelled']
@@ -31,7 +31,7 @@ export default function Bookings() {
   return (
     <Page title="Bookings" sub="Create enquiries and move them to confirmed. Works fully offline.">
       <Card title="New booking / enquiry">
-        <form onSubmit={add} className="flex flex-wrap gap-2">
+        <form onSubmit={add} className={formGrid}>
           <CustomerSelect value={f.customerId} onChange={(id) => setF({ ...f, customerId: id })} />
           <select className={inp} value={f.packageId} onChange={(e) => { const c = pkg.get(e.target.value)!.country; setF({ ...f, packageId: e.target.value, destination: DESTINATIONS.find((d) => d.country === c)!.name }) }}>
             {data.packages.map((p) => <option key={p.id} value={p.id}>{p.name} · {money(p.price)}</option>)}
@@ -43,7 +43,7 @@ export default function Bookings() {
           <button className={btn}>Add</button>
         </form>
       </Card>
-      <Card title="Recent bookings" right={<input className={inp} placeholder="Search name or destination" value={q} onChange={(e) => setQ(e.target.value)} />}>
+      <Card title="Recent bookings" right={<input className={`${inp} w-full sm:w-64`} placeholder="Search name or destination" value={q} onChange={(e) => setQ(e.target.value)} />}>
         <div className="overflow-x-auto"><table className="w-full text-sm">
           <thead className="border-b text-left text-xs uppercase text-slate-500"><tr><th className="py-2">Created</th><th>Customer</th><th>Package</th><th>Dest.</th><th>Departs</th><th>Pax</th><th>Value</th><th>Status</th><th /></tr></thead>
           <tbody>{rows.map((b) => (
@@ -51,7 +51,7 @@ export default function Bookings() {
               <td className="py-1.5">{b.createdAt}</td><td>{name.get(b.customerId)}</td><td>{pkg.get(b.packageId)?.name}</td><td>{b.destination}</td><td>{b.departDate}</td><td>{b.pax}</td>
               <td>{money((pkg.get(b.packageId)?.price ?? 0) * b.pax)}</td>
               <td><select className={`${inp} ${BADGE[b.status]}`} value={b.status} onChange={(e) => store.patch('bookings', b.id, { status: e.target.value as BookingStatus })}>{STATUSES.map((s) => <option key={s}>{s}</option>)}</select></td>
-              <td><button aria-label="Delete booking" className="px-2 text-slate-400 hover:text-rose-600" onClick={() => confirm('Delete this booking?') && store.remove('bookings', b.id)}>🗑</button></td>
+              <td><button aria-label="Delete booking" className="px-2 text-sm text-slate-500 hover:text-rose-600" onClick={() => confirm('Delete this booking?') && store.remove('bookings', b.id)}>Delete</button></td>
             </tr>))}</tbody></table></div>
       </Card>
     </Page>

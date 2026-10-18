@@ -211,7 +211,7 @@ function BackupCard() {
   return (
     <Card title="Backup">
       <p className={`text-sm ${status.due ? 'font-medium text-amber-800' : 'text-slate-600'}`}>{status.text}{status.due && ' Please download one now.'}</p>
-      <div className="mt-2"><button className={btn} disabled={busy} onClick={() => void run()}>{busy ? 'Preparing…' : '⬇ Download full backup'}</button></div>
+      <div className="mt-2"><button className={btn} disabled={busy} onClick={() => void run()}>{busy ? 'Preparing…' : 'Download full backup'}</button></div>
       <p className="mt-2 text-xs text-slate-500">The file has customer information: keep it private and never put it on GitHub or any public site. Do this every week.</p>
     </Card>
   )

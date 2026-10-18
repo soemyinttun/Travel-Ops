@@ -68,8 +68,8 @@ export default function Settings() {
       <Card title="Backup & export">
         <p className={`mb-2 text-sm ${backup.due ? 'font-medium text-amber-800' : 'text-slate-600'}`}>{backup.text}{backup.due && ' Please download one.'}</p>
         <div className="flex flex-wrap gap-2">
-          <button className={btnGhost} onClick={() => void exportJson()}>⬇ Backup (JSON)</button>
-          <button className={btnGhost} onClick={exportCsv}>⬇ Sales (CSV)</button>
+          <button className={btnGhost} onClick={() => void exportJson()}>Backup (JSON)</button>
+          <button className={btnGhost} onClick={exportCsv}>Sales (CSV)</button>
         </div>
         <p className="mt-2 text-xs text-slate-500">
           {auth.role === 'admin' ? <>To bring data in from a backup, use <Link className="text-teal-700 underline" to="/admin">Admin → Import</Link>.</> : 'Only admins can import backups.'}
