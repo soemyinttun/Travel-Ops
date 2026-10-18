@@ -17,7 +17,7 @@ export function AuthGate({ children, methods = AUTH_METHODS }: { children: React
 function Screen({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-full items-center justify-center bg-slate-50 p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
-      <div className="w-full max-w-sm space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+      <div className="w-full max-w-sm space-y-4 rounded-2xl border border-slate-200 bg-surface p-5 shadow-sm sm:p-6">
         <Logo className="text-lg" />
         {children}
       </div>
@@ -76,7 +76,7 @@ function SignIn({ methods }: { methods: AuthMethod[] }) {
   )
   return (
     <Screen>
-      <h1 className="text-xl font-semibold text-slate-900">{title}</h1>
+      <h1 className="text-xl font-semibold text-ink">{title}</h1>
       {linkError && <p role="alert" className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">{linkError}</p>}
 
       {methods.includes('google') && mode === 'password' && (
@@ -138,7 +138,7 @@ function Pending() {
   const { email, refreshRole, signOut } = useAuth()
   return (
     <Screen>
-      <h1 className="text-xl font-semibold text-slate-900">Waiting for approval</h1>
+      <h1 className="text-xl font-semibold text-ink">Waiting for approval</h1>
       <p className="text-sm text-slate-600">You are signed in as <b>{email}</b>. An admin needs to approve your account before you can see company data.</p>
       <div className="flex gap-2">
         <button className={btn} onClick={() => void refreshRole()}>Check again</button>
@@ -161,7 +161,7 @@ function ForgotPassword({ email: initial, onBack }: { email: string; onBack: () 
   }
   return (
     <Screen>
-      <h1 className="text-xl font-semibold text-slate-900">Forgot password</h1>
+      <h1 className="text-xl font-semibold text-ink">Forgot password</h1>
       {state.sent ? (
         <p role="status" className="text-sm text-slate-700">
           If <b>{email}</b> has an account, we sent an email with a link. Open the link <b>on this phone or computer</b> and choose a new password. The link works once and expires after a while.
@@ -198,7 +198,7 @@ function ChoosePassword() {
   }
   return (
     <Screen>
-      <h1 className="text-xl font-semibold text-slate-900">Choose your password</h1>
+      <h1 className="text-xl font-semibold text-ink">Choose your password</h1>
       <p className="text-sm text-slate-600">For <b>{email}</b>. You will use it to sign in on any phone or computer.</p>
       <form className="space-y-3" onSubmit={submit}>
         <label className="block text-sm">New password

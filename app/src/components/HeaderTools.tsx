@@ -4,6 +4,7 @@ import { useApp } from '../state'
 import { useAuth } from '../auth/AuthProvider'
 import { computeAlerts } from '../alerts'
 import { today } from './ui'
+import { useTheme } from '../theme'
 import { Icon } from './Icon'
 
 /** Pop-up that closes when you tap anywhere outside it. */
@@ -15,7 +16,7 @@ function Popover({ button, children, label }: { button: ReactNode; children: Rea
       {open && (
         <>
           <button aria-label="Close" className="fixed inset-0 z-[1500] cursor-default" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-full z-[1600] mt-2 w-[min(20rem,calc(100vw-1.5rem))] rounded-2xl border border-line bg-white p-2 shadow-lg" onClick={() => setOpen(false)}>{children}</div>
+          <div className="absolute right-0 top-full z-[1600] mt-2 w-[min(20rem,calc(100vw-1.5rem))] rounded-2xl border border-line bg-surface p-2 shadow-lg" onClick={() => setOpen(false)}>{children}</div>
         </>
       )}
     </div>
@@ -28,6 +29,7 @@ const row = 'flex items-start gap-3 rounded-xl px-3 py-2.5 text-sm transition ho
 export function HeaderTools() {
   const { data } = useApp()
   const auth = useAuth()
+  const { resolved, toggle } = useTheme()
   const alerts = useMemo(() => (data ? computeAlerts(data, today()) : null), [data])
   const name = new Map(data?.customers.map((c) => [c.id, c.name]))
   const initials = (auth.email ?? 'SSM').slice(0, 2).toUpperCase()
@@ -36,8 +38,12 @@ export function HeaderTools() {
 
   return (
     <div className="flex items-center gap-2">
+      <button aria-label={resolved === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'} title={resolved === 'dark' ? 'Light mode' : 'Dark mode'} onClick={toggle}
+        className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-surface text-ink-2 transition active:scale-95 hover:bg-slate-50">
+        <Icon name={resolved === 'dark' ? 'sun' : 'moon'} className="h-5 w-5" />
+      </button>
       <Popover label={`Alerts${count ? `, ${count} need action` : ''}`} button={
-        <span className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-white text-ink-2 transition active:scale-95 hover:bg-slate-50">
+        <span className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-surface text-ink-2 transition active:scale-95 hover:bg-slate-50">
           <Icon name="alert" className="h-5 w-5" />
           {count > 0 && <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-rose px-1 text-[11px] font-bold text-white">{count}</span>}
         </span>
@@ -57,7 +63,7 @@ export function HeaderTools() {
         ))}
         {trips.slice(0, 3).map((b) => (
           <Link key={b.id} to="/trips" className={row}>
-            <span className="mt-0.5 h-2 w-2 shrink-0 rounded-full bg-brand" />
+            <span className="mt-0.5 h-2 w-2 shrink-0 rounded-full bg-brand-solid" />
             <span><b className="font-semibold text-ink">Trip leaving soon</b><span className="block text-slate-500">{name.get(b.customerId) ?? 'Customer'} · {b.departDate}</span></span>
           </Link>
         ))}
@@ -65,7 +71,7 @@ export function HeaderTools() {
         <Link to="/" className="mt-1 block rounded-xl bg-brand-mist px-3 py-2 text-center text-sm font-semibold text-brand">Open Overview</Link>
       </Popover>
 
-      <Popover label="Account" button={<span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand text-sm font-bold text-white transition active:scale-95">{initials}</span>}>
+      <Popover label="Account" button={<span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-solid text-sm font-bold text-white transition active:scale-95">{initials}</span>}>
         <div className="px-3 py-2">
           <div className="truncate text-sm font-semibold text-ink">{auth.email ?? 'This device'}</div>
           <div className="text-xs text-slate-500">{auth.mode === 'cloud' ? `Role: ${auth.role}` : 'Local mode, data stays on this device'}</div>

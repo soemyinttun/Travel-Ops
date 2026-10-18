@@ -73,7 +73,7 @@ export default function Packages() {
       ]} />
       <label className="flex items-center gap-2 rounded-xl bg-indigo-soft/40 px-3 py-2 text-sm text-ink-2">
         <Icon name="overview" className="h-4 w-4 text-brand" /><span className="font-medium">Sort by</span>
-        <select aria-label="Sort packages" className="ml-auto rounded-lg bg-white px-2 py-1 text-sm font-semibold text-brand" value={sort} onChange={(e) => setSort(e.target.value)}>
+        <select aria-label="Sort packages" className="ml-auto rounded-lg bg-surface px-2 py-1 text-sm font-semibold text-brand" value={sort} onChange={(e) => setSort(e.target.value)}>
           {SORTS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
         </select>
       </label>

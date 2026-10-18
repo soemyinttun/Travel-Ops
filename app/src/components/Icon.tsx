@@ -13,6 +13,8 @@ const PATHS = {
   settings: 'M4 7h9 M17 7h3 M4 17h3 M11 17h9 M15 5v4h2V5z M7 15v4h2v-4z',
   admin: 'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z M9 12l2 2 4-4',
   logo: 'M3 20l6-10 4 6 3-4 5 8z',
+  sun: 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z M12 2v2 M12 20v2 M4.9 4.9l1.4 1.4 M17.7 17.7l1.4 1.4 M2 12h2 M20 12h2 M4.9 19.1l1.4-1.4 M17.7 6.3l1.4-1.4',
+  moon: 'M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z',
   more: 'M5 5h5v5H5z M14 5h5v5h-5z M5 14h5v5H5z M14 14h5v5h-5z',
   ops: 'M4 5h16v14H4z M8 10l3 2-3 2 M13 15h3',
   compass: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z M15.5 8.5l-2 5-5 2 2-5z',
@@ -42,7 +44,7 @@ export function Icon({ name, className = 'h-5 w-5' }: { name: IconName; classNam
 export function Logo({ name = 'SSM Travel & Tours', className = '' }: { name?: string; className?: string }) {
   return (
     <span className={`inline-flex items-center gap-2 font-bold leading-tight text-brand ${className}`}>
-      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-brand text-white"><Icon name="logo" className="h-4 w-4" /></span>
+      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-brand-solid text-white"><Icon name="logo" className="h-4 w-4" /></span>
       <span>{name}</span>
     </span>
   )

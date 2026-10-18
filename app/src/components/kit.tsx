@@ -11,7 +11,7 @@ const CHIP: Record<Tone, string> = {
   emerald: 'bg-emerald-soft text-emerald-ink border-emerald-200',
   indigo: 'bg-indigo-soft text-indigo-700 border-indigo-200',
   sky: 'bg-sky-soft text-sky-700 border-sky-200',
-  slate: 'bg-slate-200 text-slate-800 border-slate-300',
+  slate: 'bg-slate-200 text-ink border-slate-300',
 }
 const TILE: Record<Tone, string> = {
   brand: 'bg-brand-mist text-brand',
@@ -27,7 +27,7 @@ const INK: Record<Tone, string> = {
   indigo: 'text-indigo-700', sky: 'text-sky-700', slate: 'text-ink',
 }
 const BAR: Record<Tone, string> = {
-  brand: 'bg-brand', amber: 'bg-amber', rose: 'bg-rose', emerald: 'bg-emerald', indigo: 'bg-indigo', sky: 'bg-sky', slate: 'bg-slate-500',
+  brand: 'bg-brand-solid', amber: 'bg-amber', rose: 'bg-rose', emerald: 'bg-emerald', indigo: 'bg-indigo', sky: 'bg-sky', slate: 'bg-slate-500',
 }
 
 /** Small round status label. */
@@ -63,7 +63,7 @@ export function PageHead({ eyebrow, title, sub, action }: { eyebrow?: string; ti
 /** Main action button with an icon, as in the reference ("+ New enquiry"). */
 export function ActionButton({ icon = 'plus', children, onClick, type = 'button', tone = 'brand', className = '' }: { icon?: IconName; children: ReactNode; onClick?: () => void; type?: 'button' | 'submit'; tone?: 'brand' | 'rose' | 'amber' | 'soft'; className?: string }) {
   const cls = {
-    brand: 'bg-brand text-white hover:bg-brand-deep',
+    brand: 'bg-brand-solid text-white hover:bg-brand-deep',
     rose: 'bg-rose text-white hover:bg-rose-ink',
     amber: 'bg-amber-ink text-white hover:bg-amber-ink/90',
     soft: 'bg-indigo-soft/60 text-brand hover:bg-indigo-soft',
@@ -79,7 +79,7 @@ export function ActionButton({ icon = 'plus', children, onClick, type = 'button'
 export function StatTile({ label, value, note, icon, tone = 'slate', delta }: { label: string; value: string; note?: ReactNode; icon?: IconName; tone?: Tone; delta?: number }) {
   const warn = tone === 'rose'
   return (
-    <div className={`min-w-0 rounded-2xl border p-3 shadow-sm sm:p-4 ${warn ? 'border-rose bg-rose-soft/40' : 'border-line bg-white'}`}>
+    <div className={`min-w-0 rounded-2xl border p-3 shadow-sm sm:p-4 ${warn ? 'border-rose bg-rose-soft/40' : 'border-line bg-surface'}`}>
       <div className="flex items-start justify-between gap-2">
         <div className={`text-[11px] font-semibold uppercase tracking-wider ${tone === 'amber' ? 'text-amber-ink' : warn ? 'text-rose-ink' : 'text-slate-500'}`}>{label}</div>
         {icon && <IconTile name={icon} tone={tone === 'slate' ? 'brand' : tone} className="!h-8 !w-8 !rounded-lg" />}
@@ -105,9 +105,9 @@ export function FilterChips<T extends string>({ options, value, onChange }: { op
         const on = o.value === value
         return (
           <button key={o.value} role="tab" aria-selected={on} onClick={() => onChange(o.value)}
-            className={`inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition active:scale-95 ${on ? 'bg-brand text-white' : 'bg-indigo-soft/60 text-ink-2 hover:bg-indigo-soft'}`}>
+            className={`inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition active:scale-95 ${on ? 'bg-brand-solid text-white' : 'bg-indigo-soft/60 text-ink-2 hover:bg-indigo-soft'}`}>
             {o.label}
-            {o.count !== undefined && <span className={`num rounded-full px-1.5 text-xs ${on ? 'bg-white/20' : 'bg-white/70'}`}>{o.count}</span>}
+            {o.count !== undefined && <span className={`num rounded-full px-1.5 text-xs ${on ? 'bg-white/20' : 'bg-surface/70'}`}>{o.count}</span>}
           </button>
         )
       })}
@@ -118,7 +118,7 @@ export function FilterChips<T extends string>({ options, value, onChange }: { op
 /** Search box with a magnifier. */
 export function SearchBox({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder: string }) {
   return (
-    <label className="flex items-center gap-2 rounded-xl border border-line bg-white px-3 py-2.5 focus-within:border-brand focus-within:ring-1 focus-within:ring-brand">
+    <label className="flex items-center gap-2 rounded-xl border border-line bg-surface px-3 py-2.5 focus-within:border-brand focus-within:ring-1 focus-within:ring-brand">
       <Icon name="search" className="h-5 w-5 shrink-0 text-slate-500" />
       <input aria-label={placeholder} className="min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-slate-400 md:text-sm" placeholder={placeholder} value={value} onChange={(e) => onChange(e.target.value)} />
     </label>
@@ -149,13 +149,13 @@ export function Strip({ children, tone = 'sky', className = '' }: { children: Re
 
 /** A white card for one record (booking, customer, case...). `urgent` draws the rose edge. */
 export function RecordCard({ children, urgent = false }: { children: ReactNode; urgent?: boolean }) {
-  return <article className={`min-w-0 space-y-3 rounded-2xl bg-white p-3 shadow-sm sm:p-4 ${urgent ? 'border-[1.5px] border-rose' : 'border border-line'}`}>{children}</article>
+  return <article className={`min-w-0 space-y-3 rounded-2xl bg-surface p-3 shadow-sm sm:p-4 ${urgent ? 'border-[1.5px] border-rose' : 'border border-line'}`}>{children}</article>
 }
 
 /** Soft information box shown when there is nothing to show, or as a footer note. */
 export function Hint({ icon = 'check', title, children, tone = 'sky' }: { icon?: IconName; title: string; children?: ReactNode; tone?: Tone }) {
   return (
-    <div className="flex items-start gap-3 rounded-2xl border border-line bg-white/70 p-3 sm:p-4">
+    <div className="flex items-start gap-3 rounded-2xl border border-line bg-surface/70 p-3 sm:p-4">
       <IconTile name={icon} tone={tone} />
       <div className="min-w-0">
         <div className="text-sm font-semibold text-ink">{title}</div>
@@ -206,7 +206,7 @@ export function Donut({ items, center, size = 128 }: { items: Slice[]; center: R
   return (
     <div className="relative shrink-0" style={{ width: size, height: size }}>
       <svg viewBox="0 0 36 36" className="h-full w-full -rotate-90" role="img" aria-label="Share of revenue by market">
-        <circle cx="18" cy="18" r={r} fill="none" stroke="#e2e8f0" strokeWidth="4" />
+        <circle cx="18" cy="18" r={r} fill="none" style={{ stroke: 'var(--color-slate-200)' }} strokeWidth="4" />
         {items.map((i) => {
           const len = (i.value / total) * 100
           const el = <circle key={i.label} cx="18" cy="18" r={r} fill="none" stroke={HEX[i.tone]} strokeWidth="4" strokeDasharray={`${Math.max(len - 0.6, 0)} ${100 - Math.max(len - 0.6, 0)}`} strokeDashoffset={-offset} />

@@ -82,7 +82,7 @@ export default function Trips() {
 
       <div className="inline-flex rounded-xl bg-indigo-soft/50 p-1 text-sm font-semibold" role="tablist">
         {(['agenda', 'grid'] as const).map((v) => (
-          <button key={v} role="tab" aria-selected={view === v} onClick={() => setView(v)} className={`rounded-lg px-4 py-2 capitalize transition ${view === v ? 'bg-white text-brand shadow-sm' : 'text-ink-2'}`}>{v === 'grid' ? 'Calendar' : 'Agenda'}</button>
+          <button key={v} role="tab" aria-selected={view === v} onClick={() => setView(v)} className={`rounded-lg px-4 py-2 capitalize transition ${view === v ? 'bg-surface text-brand shadow-sm' : 'text-ink-2'}`}>{v === 'grid' ? 'Calendar' : 'Agenda'}</button>
         ))}
       </div>
 
@@ -142,7 +142,7 @@ export default function Trips() {
               {cells.map((d, i) => {
                 const ev = d ? byDay.get(d) ?? [] : []
                 return (
-                  <button key={i} disabled={!d} onClick={() => d && setSel(d)} className={`min-h-16 bg-white p-1 text-left align-top md:min-h-24 ${d === sel ? 'ring-2 ring-inset ring-brand' : ''} ${d === t ? 'bg-brand-mist' : ''}`}>
+                  <button key={i} disabled={!d} onClick={() => d && setSel(d)} className={`min-h-16 bg-surface p-1 text-left align-top md:min-h-24 ${d === sel ? 'ring-2 ring-inset ring-brand' : ''} ${d === t ? 'bg-brand-mist' : ''}`}>
                     <div className="num font-semibold text-slate-700">{d?.slice(8)}</div>
                     <div className="hidden space-y-0.5 md:block">
                       {ev.slice(0, 3).map((e, j) => <div key={j} className={`truncate rounded px-1 ${CHIP[e.kind]}`}>{e.title}</div>)}

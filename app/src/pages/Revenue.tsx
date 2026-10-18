@@ -54,10 +54,10 @@ export default function Revenue() {
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <label className="min-w-0 rounded-2xl border border-line bg-white p-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Group by
+        <label className="min-w-0 rounded-2xl border border-line bg-surface p-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Group by
           <select aria-label="Group by" className={`${inp} mt-1 w-full !text-sm normal-case tracking-normal text-ink`} value={dim} onChange={(e) => setDim(e.target.value as Dim)}>{DIMS.map((d) => <option key={d}>{d}</option>)}</select>
         </label>
-        <div className="min-w-0 rounded-2xl border border-line bg-white p-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Show
+        <div className="min-w-0 rounded-2xl border border-line bg-surface p-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Show
           <div className="mt-1"><Seg options={['revenue', 'margin'] as const} value={metric} onChange={setMetric} /></div>
         </div>
       </div>
@@ -93,7 +93,7 @@ export default function Revenue() {
               const before = aggPrev.get(x.key) ?? 0
               const d = before ? pctDelta(x[metric], before) : undefined
               return (
-                <div key={x.key} className="flex items-center gap-3 rounded-2xl border border-line bg-white p-3 shadow-sm">
+                <div key={x.key} className="flex items-center gap-3 rounded-2xl border border-line bg-surface p-3 shadow-sm">
                   <IconTile name="overview" tone="brand" />
                   <div className="min-w-0 flex-1">
                     <div className="truncate font-semibold text-ink">{x.key}</div>

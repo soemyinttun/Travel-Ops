@@ -53,9 +53,9 @@ export default function CustomerDetail() {
       </div>
 
       <div className="flex flex-wrap gap-2">
-        {c.phone && <a className="inline-flex items-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-white transition active:scale-95 hover:bg-brand-deep" href={telLink(c.phone)}>Call {c.phone}</a>}
+        {c.phone && <a className="inline-flex items-center gap-2 rounded-xl bg-brand-solid px-4 py-2.5 text-sm font-semibold text-white transition active:scale-95 hover:bg-brand-deep" href={telLink(c.phone)}>Call {c.phone}</a>}
         {c.phone && <a className="inline-flex items-center gap-2 rounded-xl bg-indigo-soft/60 px-4 py-2.5 text-sm font-semibold text-brand transition active:scale-95 hover:bg-indigo-soft" href={smsLink(c.phone, msg)}>Send message</a>}
-        <button className="inline-flex items-center gap-2 rounded-xl border border-line bg-white px-4 py-2.5 text-sm font-semibold text-ink-2 transition active:scale-95 hover:bg-slate-50" onClick={() => setEditing(true)}><Icon name="edit" className="h-4 w-4" />Edit</button>
+        <button className="inline-flex items-center gap-2 rounded-xl border border-line bg-surface px-4 py-2.5 text-sm font-semibold text-ink-2 transition active:scale-95 hover:bg-slate-50" onClick={() => setEditing(true)}><Icon name="edit" className="h-4 w-4" />Edit</button>
         <button className="inline-flex items-center gap-2 rounded-xl bg-rose-soft/60 px-4 py-2.5 text-sm font-semibold text-rose-ink transition active:scale-95 hover:bg-rose-soft" onClick={() => void remove()}><Icon name="trash" className="h-4 w-4" />Delete</button>
       </div>
       {!c.phone && <p className="text-sm text-slate-500">No phone number saved. Add one with Edit to call or message.</p>}

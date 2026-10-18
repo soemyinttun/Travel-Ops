@@ -41,7 +41,7 @@ const TABS: readonly { to: string; label: string; icon: IconName; owns: (p: stri
   { to: '/more', label: 'More', icon: 'more', owns: (p) => !['/', '/trips', '/bookings', ...OPS].includes(p) },
 ]
 
-const pill = 'rounded-full border border-line bg-white px-3 py-1.5 text-xs font-semibold text-ink-2 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand'
+const pill = 'rounded-full border border-line bg-surface px-3 py-1.5 text-xs font-semibold text-ink-2 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand'
 
 export default function App() {
   const { filters, setFilters, data, scoped, loadError } = useApp()
@@ -54,7 +54,7 @@ export default function App() {
   const here = NAV.find(([to]) => to === loc.pathname)?.[1] ?? (loc.pathname === '/more' ? 'More' : loc.pathname.startsWith('/customers/') ? 'Customers' : '')
   return (
     <div className="flex h-full flex-col md:flex-row">
-      <aside className="hidden shrink-0 flex-col gap-1 overflow-y-auto border-r border-line bg-white p-2 md:flex md:w-16 lg:w-56 lg:p-3">
+      <aside className="hidden shrink-0 flex-col gap-1 overflow-y-auto border-r border-line bg-surface p-2 md:flex md:w-16 lg:w-56 lg:p-3">
         <div className="mb-3 flex justify-center px-1 lg:justify-start lg:px-2"><Logo name="SSM Travel & Tours Co., Ltd." className="text-base [&>span:last-child]:hidden lg:[&>span:last-child]:inline" /></div>
         {nav.map(([to, label, icon]) => (
           <NavLink key={to} to={to} end={to === '/'} title={label} className={({ isActive }) => `flex items-center justify-center gap-3 rounded-lg px-2 py-2.5 text-sm lg:justify-start lg:px-3 ${isActive ? 'bg-brand-mist font-semibold text-brand' : 'text-ink-2 hover:bg-slate-50'}`}>
@@ -65,7 +65,7 @@ export default function App() {
       </aside>
 
       <div className="flex min-h-0 flex-1 flex-col">
-        <header className="border-b border-line bg-white/90 px-3 pb-2 pt-[max(0.5rem,env(safe-area-inset-top))] backdrop-blur md:px-6">
+        <header className="border-b border-line bg-surface/90 px-3 pb-2 pt-[max(0.5rem,env(safe-area-inset-top))] backdrop-blur md:px-6">
           <div className="flex items-center justify-between gap-2 md:hidden">
             <div className="min-w-0">
               <Logo name="SSM TRAVEL" className="text-base tracking-wide" />
@@ -118,7 +118,7 @@ export default function App() {
           </Routes></Boundary>}
         </main>
 
-        <nav aria-label="Main menu" className="fixed inset-x-0 bottom-0 z-[1000] flex border-t border-line bg-white pb-[env(safe-area-inset-bottom)] md:hidden">
+        <nav aria-label="Main menu" className="fixed inset-x-0 bottom-0 z-[1000] flex border-t border-line bg-surface pb-[env(safe-area-inset-bottom)] md:hidden">
           {TABS.map((t) => {
             const on = t.owns(loc.pathname)
             return (

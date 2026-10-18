@@ -49,7 +49,7 @@ export function EditPackage({ pkg, onClose }: { pkg?: Pkg; onClose: () => void }
           <div className="mt-2 flex flex-wrap gap-1.5">
             {DESTINATIONS.map((d) => {
               const on = f.stops.includes(d.name)
-              return <button type="button" key={d.name} aria-pressed={on} onClick={() => toggle(d.name)} className={`rounded-full px-3 py-1.5 text-xs font-semibold transition active:scale-95 ${on ? 'bg-brand text-white' : 'bg-slate-100 text-ink-2 hover:bg-slate-200'}`}>{d.name}</button>
+              return <button type="button" key={d.name} aria-pressed={on} onClick={() => toggle(d.name)} className={`rounded-full px-3 py-1.5 text-xs font-semibold transition active:scale-95 ${on ? 'bg-brand-solid text-white' : 'bg-slate-100 text-ink-2 hover:bg-slate-200'}`}>{d.name}</button>
             })}
           </div>
         </div>

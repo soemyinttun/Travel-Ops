@@ -12,7 +12,7 @@ export function Dialog({ title, onClose, children }: { title: string; onClose: (
   }, [onClose])
   return (
     <div className="fixed inset-0 z-[2000] flex items-end justify-center bg-slate-900/40 p-0 sm:items-center sm:p-4" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}>
-      <div ref={box} role="dialog" aria-modal="true" aria-label={title} className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-3xl bg-white p-4 shadow-xl sm:rounded-3xl sm:p-5">
+      <div ref={box} role="dialog" aria-modal="true" aria-label={title} className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-3xl bg-surface p-4 shadow-xl sm:rounded-3xl sm:p-5">
         <div className="mb-3 flex items-center justify-between gap-3">
           <h2 className="text-lg font-bold text-ink">{title}</h2>
           <button aria-label="Close" onClick={onClose} className="rounded-full bg-slate-100 p-2 text-slate-600 transition active:scale-95 hover:bg-slate-200"><Icon name="plus" className="h-5 w-5 rotate-45" /></button>

@@ -11,13 +11,14 @@ import { download } from '../ics'
 import { btn, btnGhost, inp } from '../components/ui'
 import { Chip, IconTile, PageHead } from '../components/kit'
 import type { IconName } from '../components/Icon'
+import { useTheme, type ThemeChoice } from '../theme'
 
 interface InstallEvent extends Event { prompt: () => Promise<void> }
 
 /** One settings block: round icon, title, optional label on the right. */
 function Section({ icon, title, tag, danger = false, children }: { icon: IconName; title: string; tag?: ReactNode; danger?: boolean; children: ReactNode }) {
   return (
-    <section className={`min-w-0 rounded-2xl border p-4 shadow-sm ${danger ? 'border-rose-200 bg-rose-soft/40' : 'border-line bg-white'}`}>
+    <section className={`min-w-0 rounded-2xl border p-4 shadow-sm ${danger ? 'border-rose-200 bg-rose-soft/40' : 'border-line bg-surface'}`}>
       <div className="mb-3 flex items-center gap-3">
         <IconTile name={icon} tone={danger ? 'rose' : 'brand'} className="!h-9 !w-9" />
         <h2 className={`flex-1 text-base font-bold ${danger ? 'text-rose-ink' : 'text-ink'}`}>{title}</h2>
@@ -32,6 +33,7 @@ export default function Settings() {
   const { filters, setFilters, scoped } = useApp()
   const auth = useAuth()
   const sync = useSyncStatus()
+  const { choice, resolved, setChoice } = useTheme()
   const [install, setInstall] = useState<InstallEvent | null>(null)
   const [msg, setMsg] = useState('')
   useEffect(() => {
@@ -77,6 +79,16 @@ export default function Settings() {
           <p className="mt-2 text-xs text-slate-500">Signing out removes the company data from this device. It stays safe in the cloud.</p>
         </Section>
       )}
+
+      <Section icon="settings" title="Appearance" tag={<Chip tone="sky">{resolved === 'dark' ? 'Dark now' : 'Light now'}</Chip>}>
+        <div role="radiogroup" aria-label="Appearance" className="grid grid-cols-3 gap-2">
+          {([['light', 'Light'], ['dark', 'Dark'], ['system', 'Automatic']] as [ThemeChoice, string][]).map(([v, label]) => (
+            <button key={v} role="radio" aria-checked={choice === v} onClick={() => setChoice(v)}
+              className={`rounded-xl border px-3 py-2.5 text-sm font-semibold transition active:scale-95 ${choice === v ? 'border-brand bg-brand-mist text-brand' : 'border-line bg-surface text-ink-2 hover:bg-slate-50'}`}>{label}</button>
+          ))}
+        </div>
+        <p className="mt-2 text-xs text-slate-500">Automatic follows your phone or computer. The sun and moon button at the top switches quickly. This choice is saved on this device only.</p>
+      </Section>
 
       <Section icon="revenue" title="Currency & formats" tag={<Chip tone="brand">Kyat stored</Chip>}>
         <label className="flex flex-wrap items-center gap-2 text-sm text-ink-2">1 USD =<input aria-label="Kyat per US dollar" className={`${inp} w-28`} type="number" min={1} value={filters.fx} onChange={(e) => setFilters({ fx: +e.target.value || 1 })} /> MMK</label>

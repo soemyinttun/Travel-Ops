@@ -64,7 +64,7 @@ export default function More({ pending = 0 }: { pending?: number }) {
         <section key={g.title} className="space-y-2">
           <SectionLabel tone={g.tone} right={g.right}>{g.title}</SectionLabel>
           {g.items.map((it) => (
-            <Link key={it.to} to={it.to} className="flex items-center gap-3 rounded-2xl border border-line bg-white p-3 shadow-sm transition active:scale-[0.99] hover:border-brand/40">
+            <Link key={it.to} to={it.to} className="flex items-center gap-3 rounded-2xl border border-line bg-surface p-3 shadow-sm transition active:scale-[0.99] hover:border-brand/40">
               <IconTile name={it.icon} tone={it.tone} className="!h-11 !w-11" />
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2"><span className="text-base font-semibold text-ink">{it.title}</span>{it.chip && <Chip tone={it.chipTone}>{it.chip}</Chip>}</div>
@@ -88,7 +88,7 @@ function Results({ title, items }: { title: string; items: Hit[] }) {
     <div className="space-y-2">
       <SectionLabel>{title}</SectionLabel>
       {items.map((h) => (
-        <Link key={h.key} to={h.to} className="flex items-center gap-3 rounded-2xl border border-line bg-white p-3 shadow-sm transition active:scale-[0.99] hover:border-brand/40">
+        <Link key={h.key} to={h.to} className="flex items-center gap-3 rounded-2xl border border-line bg-surface p-3 shadow-sm transition active:scale-[0.99] hover:border-brand/40">
           <div className="min-w-0 flex-1"><div className="truncate font-semibold text-ink">{h.title}</div><div className="truncate text-sm text-slate-500">{h.text}</div></div>
           <Icon name="chevron" className="h-5 w-5 shrink-0 text-slate-400" />
         </Link>

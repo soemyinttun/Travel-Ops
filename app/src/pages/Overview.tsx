@@ -28,7 +28,7 @@ export default function Overview() {
     return (
       <div className="mx-auto max-w-xl space-y-4 pt-6">
         <PageHead eyebrow="Welcome" title="No data on this device yet" sub="Load made-up presentation data to see every screen, or import a backup in Admin." />
-        <button className="w-full rounded-xl bg-brand px-4 py-3 text-sm font-semibold text-white transition active:scale-95 hover:bg-brand-deep" onClick={() => void loadShowcaseData().then(() => setFilters({ preset: '12m', service: 'All', dest: null }))}>Load presentation demo</button>
+        <button className="w-full rounded-xl bg-brand-solid px-4 py-3 text-sm font-semibold text-white transition active:scale-95 hover:bg-brand-deep" onClick={() => void loadShowcaseData().then(() => setFilters({ preset: '12m', service: 'All', dest: null }))}>Load presentation demo</button>
       </div>
     )
   }
@@ -80,7 +80,7 @@ export default function Overview() {
             <Link key={s.status} to={`/bookings?status=${s.status}`} className="rounded-xl bg-slate-50 p-2.5 text-center transition active:scale-95 hover:bg-brand-mist">
               <div className="text-[11px] font-semibold text-slate-500">{s.label}</div>
               <div className="num text-xl font-bold text-ink">{stageCount(s.status)}</div>
-              <div className="mx-auto mt-1 h-1 w-full overflow-hidden rounded-full bg-slate-200"><div className={`h-full rounded-full ${s.tone === 'slate' ? 'bg-slate-500' : s.tone === 'brand' ? 'bg-brand' : s.tone === 'emerald' ? 'bg-emerald' : 'bg-rose'}`} style={{ width: `${(stageCount(s.status) / maxStage) * 100}%` }} /></div>
+              <div className="mx-auto mt-1 h-1 w-full overflow-hidden rounded-full bg-slate-200"><div className={`h-full rounded-full ${s.tone === 'slate' ? 'bg-slate-500' : s.tone === 'brand' ? 'bg-brand-solid' : s.tone === 'emerald' ? 'bg-emerald' : 'bg-rose'}`} style={{ width: `${(stageCount(s.status) / maxStage) * 100}%` }} /></div>
             </Link>
           ))}
         </div>
@@ -90,7 +90,7 @@ export default function Overview() {
         <Card title="Revenue mix" right={
           <div className="flex rounded-lg bg-indigo-soft/50 p-0.5" role="tablist">
             {mixMonths.map((m) => (
-              <button key={m} role="tab" aria-selected={m === mixMonth} onClick={() => setMix(m)} className={`rounded-md px-3 py-1.5 text-xs font-semibold transition ${m === mixMonth ? 'bg-brand text-white' : 'text-ink-2'}`}>{m.slice(2)}</button>
+              <button key={m} role="tab" aria-selected={m === mixMonth} onClick={() => setMix(m)} className={`rounded-md px-3 py-1.5 text-xs font-semibold transition ${m === mixMonth ? 'bg-brand-solid text-white' : 'text-ink-2'}`}>{m.slice(2)}</button>
             ))}
           </div>}>
           <div className="mb-3 flex items-baseline justify-between"><span className="num text-2xl font-bold text-ink">{money(mixTotal, true)}</span><span className="text-xs text-slate-500">revenue in {mixMonth || 'this period'}</span></div>

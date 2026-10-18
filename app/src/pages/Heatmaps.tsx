@@ -126,10 +126,10 @@ export default function Heatmaps() {
       <PageHead eyebrow="Analytics" title="Heatmaps" sub="Where travellers want to go and where they come from. Tap a destination bubble to filter the whole app." />
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <div className="min-w-0 rounded-2xl border border-line bg-white p-3 text-xs font-semibold uppercase tracking-wider text-slate-500">View
+        <div className="min-w-0 rounded-2xl border border-line bg-surface p-3 text-xs font-semibold uppercase tracking-wider text-slate-500">View
           <div className="mt-1"><Seg options={['Destinations', 'Origins'] as const} value={mode} onChange={setMode} /></div>
         </div>
-        <div className="min-w-0 rounded-2xl border border-line bg-white p-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Count
+        <div className="min-w-0 rounded-2xl border border-line bg-surface p-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Count
           <div className="mt-1"><Seg options={['Enquiries', 'Bookings', 'Revenue'] as const} value={metric} onChange={setMetric} /></div>
         </div>
       </div>

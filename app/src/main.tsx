@@ -7,11 +7,13 @@ import App from './App'
 import { AppProvider } from './state'
 import { AuthProvider } from './auth/AuthProvider'
 import { AuthGate } from './auth/AuthGate'
+import { ThemeProvider } from './theme'
 
 registerSW({ immediate: true })
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
+    <ThemeProvider>
     <HashRouter>
       <AuthProvider>
         <AuthGate>
@@ -21,5 +23,6 @@ createRoot(document.getElementById('root')!).render(
         </AuthGate>
       </AuthProvider>
     </HashRouter>
+    </ThemeProvider>
   </StrictMode>,
 )

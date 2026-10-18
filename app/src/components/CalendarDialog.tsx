@@ -96,7 +96,7 @@ export function CalendarDialog({ onClose, client = supabase, host = connection.h
               <div className="flex flex-wrap gap-2">
                 <button className={btnGhost} onClick={() => void copy()}>Copy link</button>
                 <button className={btnGhost} disabled={busy} onClick={() => { if (confirm('Make a new link? The old link stops working, so you must add the calendar again.')) void run(async () => setFeed(await renewFeed(client!)), 'New link made. The old one no longer works.') }}>Make a new link</button>
-                <button className="rounded-lg border border-rose-200 bg-white px-3 py-2 text-sm font-medium text-rose-ink transition active:scale-95 hover:bg-rose-soft/50" disabled={busy} onClick={() => { if (confirm('Turn off your calendar link? Calendars using it stop updating.')) void run(async () => { await deleteFeed(client!); setFeed(null) }, 'Link turned off.') }}>Turn off</button>
+                <button className="rounded-lg border border-rose-200 bg-surface px-3 py-2 text-sm font-medium text-rose-ink transition active:scale-95 hover:bg-rose-soft/50" disabled={busy} onClick={() => { if (confirm('Turn off your calendar link? Calendars using it stop updating.')) void run(async () => { await deleteFeed(client!); setFeed(null) }, 'Link turned off.') }}>Turn off</button>
               </div>
               <ul className="list-disc space-y-1 pl-5 text-xs text-slate-500">
                 <li><b>Keep the link private.</b> Anyone who has it can see customer names and trip dates.</li>
