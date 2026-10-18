@@ -12,7 +12,7 @@ import { backupStatus, downloadBackup } from '../backup'
 import { versionLabel } from '../version'
 import { TABLES } from '../types'
 import { Card, Page, btn, btnGhost, inp } from '../components/ui'
-import { FilterChips, PageHead } from '../components/kit'
+import { Avatar, Chip, FilterChips, Hint, PageHead, RecordCard, SearchBox, StatTile, Strip } from '../components/kit'
 
 type Tab = 'staff' | 'import' | 'history' | 'connection'
 
@@ -151,6 +151,7 @@ const total = (c: CheckResult['counts']) => Object.values(c).reduce((a, b) => a 
 function StaffCard({ myEmail }: { myEmail: string | undefined }) {
   const [people, setPeople] = useState<Profile[] | null>(null)
   const [error, setError] = useState('')
+  const [q, setQ] = useState('')
   const load = () => listProfiles().then(setPeople).catch((e: Error) => setError(e.message))
   useEffect(() => { void load() }, [])
   const change = async (p: Profile, role: Role) => {
@@ -159,35 +160,59 @@ function StaffCard({ myEmail }: { myEmail: string | undefined }) {
     await setRole(p.id, role).catch((e: Error) => setError(e.message))
     await load()
   }
+  const count = (r: Role) => people?.filter((p) => p.role === r).length ?? 0
+  const needle = q.trim().toLowerCase()
+  const shown = (people ?? []).filter((p) => !needle || ((p.display_name ?? '') + ' ' + p.email).toLowerCase().includes(needle))
   return (
-    <Card title="Staff accounts">
-      <p className="mb-2 text-sm text-slate-600">
-        New people: invite them in the Supabase dashboard (Authentication → Users → Invite). They appear here as <b>pending</b>; choose <b>staff</b> or <b>admin</b> to let them in.
+    <div className="space-y-4">
+      <div className="grid grid-cols-3 gap-3">
+        <StatTile label="Staff" value={String(count('staff'))} icon="people" tone="brand" note="can use the app" />
+        <StatTile label="Pending" value={String(count('pending'))} icon="clock" tone={count('pending') ? 'amber' : 'slate'} note="need approval" />
+        <StatTile label="Admins" value={String(count('admin'))} icon="admin" tone="emerald" note="full access" />
+      </div>
+      <p className="px-1 text-sm text-slate-600">
+        New people sign up on the sign-in screen, or you invite them in the Supabase dashboard (Authentication, Users, Invite). They appear here as <b>pending</b> until you approve them.
       </p>
-      {error && <p role="alert" className="mb-2 text-sm text-rose-700">{error}</p>}
-      {!people ? <p className="text-sm text-slate-500">{navigator.onLine ? 'Loading…' : 'Connect to the internet to manage staff.'}</p> : (
-        <div className="overflow-x-auto"><table className="w-full text-sm">
-          <thead className="border-b text-left text-xs uppercase text-slate-500"><tr><th className="py-1">Person</th><th>Signs in with</th><th>Signed up</th><th>Role</th></tr></thead>
-          <tbody>{people.map((p) => (
-            <tr key={p.id} className={`border-b last:border-0 ${p.role === 'pending' ? 'bg-amber-50' : ''}`}>
-              <td className="py-1.5 pr-3">
-                {p.display_name && <div className="font-medium">{p.display_name}</div>}
-                <div className={p.display_name ? 'text-xs text-slate-500' : ''}>{p.email}{p.email === myEmail && <span className="ml-1 text-xs text-slate-400">(you)</span>}</div>
-              </td>
-              <td className="pr-3">{p.provider ?? '—'}</td>
-              <td className="whitespace-nowrap pr-3">{p.created_at.slice(0, 10)}</td>
-              <td><select className={inp} value={p.role} aria-label={`Role for ${p.email}`} onChange={(e) => void change(p, e.target.value as Role)}>
-                <option value="pending">pending</option><option value="staff">staff</option><option value="admin">admin</option>
-              </select></td>
-            </tr>
-          ))}</tbody>
-        </table></div>
+      {error && <p role="alert" className="text-sm font-medium text-rose-ink">{error}</p>}
+      {!people ? <Hint icon="clock" title={navigator.onLine ? 'Loading staff...' : 'You are offline'}>{navigator.onLine ? undefined : 'Connect to the internet to manage staff.'}</Hint> : (
+        <>
+          <SearchBox value={q} onChange={setQ} placeholder="Search by name or email" />
+          <div className="grid gap-3 md:grid-cols-2">
+            {shown.map((p) => (
+              <RecordCard key={p.id}>
+                <div className="flex items-start gap-3">
+                  <Avatar name={p.display_name || p.email} tone={p.role === 'pending' ? 'amber' : p.role === 'admin' ? 'emerald' : 'brand'} />
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate font-semibold text-ink">{p.display_name || p.email}{p.email === myEmail && <span className="ml-1 text-xs font-medium text-slate-400">(you)</span>}</div>
+                    {p.display_name && <div className="truncate text-sm text-slate-500">{p.email}</div>}
+                  </div>
+                  <Chip tone={p.role === 'pending' ? 'amber' : p.role === 'admin' ? 'emerald' : 'brand'}>{p.role === 'pending' ? 'Pending approval' : p.role}</Chip>
+                </div>
+                <Strip>
+                  <span className="text-ink-2">Signs in with <b className="font-semibold text-ink">{p.provider ?? 'email'}</b></span>
+                  <span className="text-ink-2">Signed up {p.created_at.slice(0, 10)}</span>
+                </Strip>
+                {p.role === 'pending' ? (
+                  <div className="flex flex-wrap gap-2">
+                    <button className={btn} onClick={() => void change(p, 'staff')}>Approve as staff</button>
+                    <button className={btnGhost} onClick={() => void change(p, 'admin')}>Approve as admin</button>
+                  </div>
+                ) : (
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500">Role
+                    <select className={inp + ' mt-1 w-full !text-sm'} value={p.role} aria-label={'Role for ' + p.email} onChange={(e) => void change(p, e.target.value as Role)}>
+                      <option value="pending">pending</option><option value="staff">staff</option><option value="admin">admin</option>
+                    </select>
+                  </label>
+                )}
+              </RecordCard>
+            ))}
+          </div>
+          {!shown.length && <Hint icon="search" title="Nobody found" />}
+        </>
       )}
-    </Card>
+    </div>
   )
 }
-
-// ── Import history ─────────────────────────────────────────────────────────
 
 function HistoryCard() {
   const [rows, setRows] = useState<ImportEntry[] | null>(null)

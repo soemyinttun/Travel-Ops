@@ -4,7 +4,9 @@ import { useApp } from '../state'
 import { inRange, rangeFor } from '../analytics'
 import { Card, Chart, Loading, Seg, inp } from '../components/ui'
 import { Icon } from '../components/Icon'
-import { Chip, FilterChips, Hint, PageHead, RecordCard, type Tone } from '../components/kit'
+import { ActionButton, Chip, FilterChips, Hint, PageHead, RecordCard, type Tone } from '../components/kit'
+import { EditPackage } from '../components/EditPackage'
+import type { Pkg } from '../types'
 
 type Metric = 'Revenue' | 'Margin' | 'Bookings' | 'Conversion'
 const SORTS: [string, string][] = [['revenue', 'Revenue'], ['margin', 'Margin'], ['marginPct', 'Margin %'], ['bookings', 'Booked'], ['price', 'Price'], ['days', 'Trip length']]
@@ -15,6 +17,7 @@ export default function Packages() {
   const [sort, setSort] = useState('revenue')
   const [len, setLen] = useState('all')
   const [editing, setEditing] = useState<string | null>(null)
+  const [dialog, setDialog] = useState<Pkg | 'new' | null>(null)
   if (!data) return <Loading />
   const r = rangeFor(filters.preset)
 
@@ -37,11 +40,16 @@ export default function Packages() {
   const countries = [...new Set(data.packages.map((p) => p.country))]
   const fmtAxis = (v: number) => (metric === 'Revenue' || metric === 'Margin' ? money(v, true) : metric === 'Conversion' ? `${v.toFixed(0)}%` : String(v))
   const upd = (id: string, changes: { price?: number; cost?: number }) => store.patch('packages', id, changes)
+  const removePkg = async (p: Pkg) => {
+    if (data.bookings.some((b) => b.packageId === p.id)) return alert('This package has bookings and cannot be deleted. Edit it instead.')
+    if (confirm(`Delete ${p.name}?`)) await store.remove('packages', p.id)
+  }
   const health = (pct: number): [string, Tone] => (pct >= 30 ? ['Healthy', 'emerald'] : pct >= 15 ? ['Fair', 'amber'] : ['Low', 'rose'])
 
   return (
     <div className="space-y-4">
-      <PageHead eyebrow="Trip packages" title="Packages" sub={`${data.packages.length} packages across ${countries.length} ${countries.length === 1 ? 'country' : 'countries'}. Prices are kyat per person.`} />
+      <PageHead eyebrow="Trip packages" title="Packages" sub={`${data.packages.length} packages across ${countries.length} ${countries.length === 1 ? 'country' : 'countries'}. Prices are kyat per person.`}
+        action={<ActionButton onClick={() => setDialog('new')}>New package</ActionButton>} />
 
       <Card title={`${metric} by duration`} right={<Seg options={['Revenue', 'Margin', 'Bookings', 'Conversion'] as const} value={metric} onChange={setMetric} />}>
         <Chart
@@ -102,14 +110,19 @@ export default function Packages() {
                   <b className="font-semibold text-ink">{x.bookings}</b> booked · {x.pax} travellers · {money(x.revenue, true)}
                   <div className="text-xs text-slate-500">{x.enquiries} enquiries · {x.conv.toFixed(0)}% converted</div>
                 </div>
-                <button className="inline-flex items-center gap-2 rounded-xl bg-indigo-soft/60 px-3 py-2 text-sm font-semibold text-brand transition active:scale-95 hover:bg-indigo-soft" onClick={() => setEditing(open ? null : x.p.id)}>
-                  <Icon name={open ? 'check' : 'edit'} className="h-4 w-4" />{open ? 'Done' : 'Edit pricing'}
-                </button>
+                <div className="flex flex-wrap gap-2">
+                  <button className="inline-flex items-center gap-2 rounded-xl bg-indigo-soft/60 px-3 py-2 text-sm font-semibold text-brand transition active:scale-95 hover:bg-indigo-soft" onClick={() => setEditing(open ? null : x.p.id)}>
+                    <Icon name={open ? 'check' : 'edit'} className="h-4 w-4" />{open ? 'Done' : 'Edit pricing'}
+                  </button>
+                  <button className="inline-flex items-center gap-2 rounded-xl bg-indigo-soft/60 px-3 py-2 text-sm font-semibold text-brand transition active:scale-95 hover:bg-indigo-soft" onClick={() => setDialog(x.p)}>Edit details</button>
+                  <button aria-label={`Delete ${x.p.name}`} className="rounded-xl bg-rose-soft/60 p-2.5 text-rose-ink transition active:scale-95 hover:bg-rose-soft" onClick={() => removePkg(x.p)}><Icon name="trash" className="h-4 w-4" /></button>
+                </div>
               </div>
             </RecordCard>
           )
         })}
       </div>
+      {dialog && <EditPackage pkg={dialog === 'new' ? undefined : dialog} onClose={() => setDialog(null)} />}
       {!sorted.length && <Hint icon="packages" title="No packages for this length" />}
       <Hint icon="pin" tone="amber" title="Bhutan prices">Include the government Sustainable Development Fee. Set the current rate in the price and cost boxes.</Hint>
     </div>

@@ -3,7 +3,10 @@ import { useApp } from '../state'
 import { buildICS, download, googleCalendarUrl, plusDay, type CalEvent } from '../ics'
 import { Card, Loading, btnGhost, daysBetween, today } from '../components/ui'
 import { Icon } from '../components/Icon'
-import { Chip, Hint, PageHead, RecordCard, StatTile, Strip, type Tone } from '../components/kit'
+import { Chip, FilterChips, Hint, PageHead, RecordCard, StatTile, Strip, type Tone } from '../components/kit'
+import { Dialog } from '../components/Dialog'
+import { smsLink, telLink } from '../contact'
+import type { Booking, Pkg } from '../types'
 
 const CHIP: Record<CalEvent['kind'], string> = {
   trip: 'bg-brand-mist text-brand', visa: 'bg-amber-soft text-amber-ink',
@@ -17,6 +20,8 @@ export default function Trips() {
   const [view, setView] = useState<View>('agenda')
   const [cursor, setCursor] = useState(() => { const d = new Date(); return { y: d.getFullYear(), m: d.getMonth() } })
   const [sel, setSel] = useState<string | null>(today())
+  const [region, setRegion] = useState('all')
+  const [roster, setRoster] = useState<{ pkg: Pkg; date: string } | null>(null)
 
   const events = useMemo<CalEvent[]>(() => {
     if (!data) return []
@@ -77,7 +82,9 @@ export default function Trips() {
       ]
       return { b, p, c, checks, ready: checks.filter(([, ok]) => ok).length }
     })
-  const pax = upcoming.reduce((s, u) => s + u.b.pax, 0)
+  const regions = [...new Set(upcoming.map((u) => u.p.country))]
+  const shown = region === 'all' ? upcoming : upcoming.filter((u) => u.p.country === region)
+  const pax = shown.reduce((s, u) => s + u.b.pax, 0)
   const selEvents = sel ? byDay.get(sel) ?? [] : []
   const when = (d: string) => { const n = daysBetween(t, d); return n === 0 ? 'Today' : n === 1 ? 'Tomorrow' : `In ${n} days` }
 
@@ -94,13 +101,14 @@ export default function Trips() {
 
       {view === 'agenda' && (
         <>
+          {regions.length > 1 && <FilterChips value={region} onChange={setRegion} options={[{ value: 'all', label: 'All regions', count: upcoming.length }, ...regions.map((r) => ({ value: r, label: r, count: upcoming.filter((u) => u.p.country === r).length }))]} />}
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-            <StatTile label="Next 45 days" value={String(upcoming.length)} icon="compass" tone="brand" note="confirmed departures" />
+            <StatTile label="Next 45 days" value={String(shown.length)} icon="compass" tone="brand" note="confirmed departures" />
             <StatTile label="Travellers" value={String(pax)} icon="people" tone="indigo" note="on those trips" />
-            <StatTile label="Not ready" value={String(upcoming.filter((u) => u.ready < 3).length)} icon="alert" tone={upcoming.some((u) => u.ready < 3) ? 'amber' : 'slate'} note="missing a document" />
+            <StatTile label="Not ready" value={String(shown.filter((u) => u.ready < 3).length)} icon="alert" tone={shown.some((u) => u.ready < 3) ? 'amber' : 'slate'} note="missing a document" />
           </div>
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {upcoming.map((u) => {
+            {shown.map((u) => {
               const urgent = daysBetween(t, u.b.departDate) <= 7 && u.ready < 3
               const ev = events.find((e) => e.uid === `trip-${u.b.id}`)
               const tone: Tone = u.ready === 3 ? 'emerald' : u.ready === 0 ? 'rose' : 'amber'
@@ -124,12 +132,15 @@ export default function Trips() {
                       </li>
                     ))}
                   </ul>
-                  {ev && <a className={`${btnGhost} block text-center`} href={googleCalendarUrl(ev)} target="_blank" rel="noreferrer">Add to Google Calendar</a>}
+                  <div className="grid grid-cols-2 gap-2">
+                    <button className={btnGhost} onClick={() => setRoster({ pkg: u.p, date: u.b.departDate })}>View roster</button>
+                    {ev ? <a className={`${btnGhost} block text-center`} href={googleCalendarUrl(ev)} target="_blank" rel="noreferrer">Add to calendar</a> : <span />}
+                  </div>
                 </RecordCard>
               )
             })}
           </div>
-          {!upcoming.length && <Hint icon="compass" tone="sky" title="No departures in the next 45 days">Confirmed bookings with a departure date show up here, with a checklist of passport, visa and flight.</Hint>}
+          {!shown.length && <Hint icon="compass" tone="sky" title="No departures in the next 45 days">Confirmed bookings with a departure date show up here, with a checklist of passport, visa and flight.</Hint>}
         </>
       )}
 
@@ -176,6 +187,27 @@ export default function Trips() {
           )}
         </>
       )}
+      {roster && <RosterDialog bookings={data.bookings.filter((b) => b.status === 'confirmed' && b.packageId === roster.pkg.id && b.departDate === roster.date)} pkg={roster.pkg} date={roster.date} onClose={() => setRoster(null)} />}
     </div>
+  )
+}
+
+/** Everyone leaving together on one package and date, with a way to call or message each. */
+function RosterDialog({ bookings, pkg, date, onClose }: { bookings: Booking[]; pkg: Pkg; date: string; onClose: () => void }) {
+  const { data } = useApp()
+  const people = bookings.map((b) => ({ b, c: data?.customers.find((c) => c.id === b.customerId) }))
+  const pax = bookings.reduce((s, b) => s + b.pax, 0)
+  return (
+    <Dialog title={`Roster · ${date}`} onClose={onClose}>
+      <p className="mb-3 text-sm text-slate-500">{pkg.name} · {pax} {pax === 1 ? 'traveller' : 'travellers'} in {bookings.length} {bookings.length === 1 ? 'booking' : 'bookings'}</p>
+      <ul className="divide-y divide-line">
+        {people.map(({ b, c }) => (
+          <li key={b.id} className="flex flex-wrap items-center justify-between gap-2 py-2.5 text-sm">
+            <span className="min-w-0"><b className="font-semibold text-ink">{c?.name ?? 'Unknown'}</b><span className="block text-slate-500">{b.pax} {b.pax === 1 ? 'traveller' : 'travellers'}{c?.passportExpiry ? ` · passport ${c.passportExpiry}` : ''}</span></span>
+            {c?.phone && <span className="flex gap-2"><a className="rounded-lg bg-indigo-soft/60 px-3 py-1.5 text-xs font-semibold text-brand" href={telLink(c.phone)}>Call</a><a className="rounded-lg bg-indigo-soft/60 px-3 py-1.5 text-xs font-semibold text-brand" href={smsLink(c.phone, `Hello ${c.name}, this is SSM Travel & Tours. Reminder: your ${pkg.name} leaves on ${date}. Please bring your passport and documents.`)}>Message</a></span>}
+          </li>
+        ))}
+      </ul>
+    </Dialog>
   )
 }
