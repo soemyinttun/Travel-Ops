@@ -1,22 +1,42 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { deleteLegacyData, readLegacyData } from '../db'
 import { checkBackup, withFreshIds, type CheckResult } from '../importer/validate'
 import { addMany, replaceAll } from '../store'
 import { useAuth, type Role } from '../auth/AuthProvider'
-import { listImports, listProfiles, logImport, setRole, type ImportEntry, type Profile } from '../auth/admin'
-import { requestSync } from '../sync/controller'
+import { listImports, listProfiles, logImport, setRole, usePendingCount, type ImportEntry, type Profile } from '../auth/admin'
+import { requestSync, useSyncStatus } from '../sync/controller'
+import { connection } from '../sync/supabase'
+import { AUTH_METHODS } from '../auth/providers'
+import { appUrl } from '../auth/redirect'
+import { backupStatus, downloadBackup } from '../backup'
+import { versionLabel } from '../version'
 import { TABLES } from '../types'
 import { Card, Page, btn, btnGhost, inp } from '../components/ui'
+import { Avatar, Chip, FilterChips, Hint, PageHead, RecordCard, SearchBox, StatTile, Strip } from '../components/kit'
+
+type Tab = 'staff' | 'import' | 'history' | 'connection'
 
 export default function Admin() {
   const auth = useAuth()
+  const cloud = auth.mode === 'cloud'
+  const [tab, setTab] = useState<Tab>(cloud ? 'staff' : 'import')
+  const pending = usePendingCount(auth.role === 'admin' && cloud)
   if (auth.role !== 'admin') return <Page title="Admin"><Card><p className="text-sm text-slate-600">Only admins can open this page.</p></Card></Page>
+  const tabs: { value: Tab; label: string; count?: number }[] = [
+    ...(cloud ? [{ value: 'staff' as Tab, label: 'Staff', count: pending || undefined }] : []),
+    { value: 'import', label: 'Import & backup' },
+    ...(cloud ? [{ value: 'history' as Tab, label: 'History' }] : []),
+    { value: 'connection', label: 'Connection' },
+  ]
   return (
-    <Page title="Admin" sub={auth.mode === 'cloud' ? 'Import data and manage staff accounts.' : 'Import data into this device.'}>
-      <ImportCard cloud={auth.mode === 'cloud'} />
-      {auth.mode === 'cloud' && <StaffCard myEmail={auth.email} />}
-      {auth.mode === 'cloud' && <HistoryCard />}
-    </Page>
+    <div className="space-y-4">
+      <PageHead eyebrow="Admin clearance active" title="Admin" sub={cloud ? 'Import data and manage staff accounts.' : 'Import data into this device.'} />
+      <FilterChips value={tab} onChange={setTab} options={tabs} />
+      {tab === 'import' && <><ImportCard cloud={cloud} /><BackupCard /></>}
+      {tab === 'staff' && cloud && <StaffCard myEmail={auth.email} />}
+      {tab === 'connection' && <ConnectionCard />}
+      {tab === 'history' && cloud && <HistoryCard />}
+    </div>
   )
 }
 
@@ -131,6 +151,7 @@ const total = (c: CheckResult['counts']) => Object.values(c).reduce((a, b) => a 
 function StaffCard({ myEmail }: { myEmail: string | undefined }) {
   const [people, setPeople] = useState<Profile[] | null>(null)
   const [error, setError] = useState('')
+  const [q, setQ] = useState('')
   const load = () => listProfiles().then(setPeople).catch((e: Error) => setError(e.message))
   useEffect(() => { void load() }, [])
   const change = async (p: Profile, role: Role) => {
@@ -139,30 +160,59 @@ function StaffCard({ myEmail }: { myEmail: string | undefined }) {
     await setRole(p.id, role).catch((e: Error) => setError(e.message))
     await load()
   }
+  const count = (r: Role) => people?.filter((p) => p.role === r).length ?? 0
+  const needle = q.trim().toLowerCase()
+  const shown = (people ?? []).filter((p) => !needle || ((p.display_name ?? '') + ' ' + p.email).toLowerCase().includes(needle))
   return (
-    <Card title="Staff accounts">
-      <p className="mb-2 text-sm text-slate-600">
-        New people: invite them in the Supabase dashboard (Authentication → Users → Invite). They appear here as <b>pending</b>; choose <b>staff</b> or <b>admin</b> to let them in.
+    <div className="space-y-4">
+      <div className="grid grid-cols-3 gap-3">
+        <StatTile label="Staff" value={String(count('staff'))} icon="people" tone="brand" note="can use the app" />
+        <StatTile label="Pending" value={String(count('pending'))} icon="clock" tone={count('pending') ? 'amber' : 'slate'} note="need approval" />
+        <StatTile label="Admins" value={String(count('admin'))} icon="admin" tone="emerald" note="full access" />
+      </div>
+      <p className="px-1 text-sm text-slate-600">
+        New people sign up on the sign-in screen, or you invite them in the Supabase dashboard (Authentication, Users, Invite). They appear here as <b>pending</b> until you approve them.
       </p>
-      {error && <p role="alert" className="mb-2 text-sm text-rose-700">{error}</p>}
-      {!people ? <p className="text-sm text-slate-500">{navigator.onLine ? 'Loading…' : 'Connect to the internet to manage staff.'}</p> : (
-        <table className="w-full text-sm">
-          <thead className="border-b text-left text-xs uppercase text-slate-500"><tr><th className="py-1">Email</th><th>Role</th></tr></thead>
-          <tbody>{people.map((p) => (
-            <tr key={p.id} className="border-b last:border-0">
-              <td className="py-1.5">{p.email}{p.email === myEmail && <span className="ml-1 text-xs text-slate-400">(you)</span>}</td>
-              <td><select className={inp} value={p.role} aria-label={`Role for ${p.email}`} onChange={(e) => void change(p, e.target.value as Role)}>
-                <option value="pending">pending</option><option value="staff">staff</option><option value="admin">admin</option>
-              </select></td>
-            </tr>
-          ))}</tbody>
-        </table>
+      {error && <p role="alert" className="text-sm font-medium text-rose-ink">{error}</p>}
+      {!people ? <Hint icon="clock" title={navigator.onLine ? 'Loading staff...' : 'You are offline'}>{navigator.onLine ? undefined : 'Connect to the internet to manage staff.'}</Hint> : (
+        <>
+          <SearchBox value={q} onChange={setQ} placeholder="Search by name or email" />
+          <div className="grid gap-3 md:grid-cols-2">
+            {shown.map((p) => (
+              <RecordCard key={p.id}>
+                <div className="flex items-start gap-3">
+                  <Avatar name={p.display_name || p.email} tone={p.role === 'pending' ? 'amber' : p.role === 'admin' ? 'emerald' : 'brand'} />
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate font-semibold text-ink">{p.display_name || p.email}{p.email === myEmail && <span className="ml-1 text-xs font-medium text-slate-400">(you)</span>}</div>
+                    {p.display_name && <div className="truncate text-sm text-slate-500">{p.email}</div>}
+                  </div>
+                  <Chip tone={p.role === 'pending' ? 'amber' : p.role === 'admin' ? 'emerald' : 'brand'}>{p.role === 'pending' ? 'Pending approval' : p.role}</Chip>
+                </div>
+                <Strip>
+                  <span className="text-ink-2">Signs in with <b className="font-semibold text-ink">{p.provider ?? 'email'}</b></span>
+                  <span className="text-ink-2">Signed up {p.created_at.slice(0, 10)}</span>
+                </Strip>
+                {p.role === 'pending' ? (
+                  <div className="flex flex-wrap gap-2">
+                    <button className={btn} onClick={() => void change(p, 'staff')}>Approve as staff</button>
+                    <button className={btnGhost} onClick={() => void change(p, 'admin')}>Approve as admin</button>
+                  </div>
+                ) : (
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500">Role
+                    <select className={inp + ' mt-1 w-full !text-sm'} value={p.role} aria-label={'Role for ' + p.email} onChange={(e) => void change(p, e.target.value as Role)}>
+                      <option value="pending">pending</option><option value="staff">staff</option><option value="admin">admin</option>
+                    </select>
+                  </label>
+                )}
+              </RecordCard>
+            ))}
+          </div>
+          {!shown.length && <Hint icon="search" title="Nobody found" />}
+        </>
       )}
-    </Card>
+    </div>
   )
 }
-
-// ── Import history ─────────────────────────────────────────────────────────
 
 function HistoryCard() {
   const [rows, setRows] = useState<ImportEntry[] | null>(null)
@@ -183,6 +233,63 @@ function HistoryCard() {
           ))}</tbody>
         </table>
       )}
+    </Card>
+  )
+}
+
+// ── Backup ─────────────────────────────────────────────────────────────────
+
+function BackupCard() {
+  const [status, setStatus] = useState(backupStatus())
+  const [busy, setBusy] = useState(false)
+  const run = async () => {
+    setBusy(true)
+    try { await downloadBackup() } finally { setBusy(false); setStatus(backupStatus()) }
+  }
+  return (
+    <Card title="Backup">
+      <p className={`text-sm ${status.due ? 'font-medium text-amber-800' : 'text-slate-600'}`}>{status.text}{status.due && ' Please download one now.'}</p>
+      <div className="mt-2"><button className={btn} disabled={busy} onClick={() => void run()}>{busy ? 'Preparing…' : 'Download full backup'}</button></div>
+      <p className="mt-2 text-xs text-slate-500">The file has customer information: keep it private and never put it on GitHub or any public site. Do this every week.</p>
+    </Card>
+  )
+}
+
+// ── Connection check ───────────────────────────────────────────────────────
+
+/** Shows how this copy of the app is connected, to find problems quickly. Never shows keys. */
+function ConnectionCard() {
+  const auth = useAuth()
+  const sync = useSyncStatus()
+  const syncText =
+    auth.mode === 'local' ? 'Off (local-only mode)'
+    : sync.state === 'synced' ? `Synced${sync.lastSynced ? ` at ${new Date(sync.lastSynced).toLocaleTimeString()}` : ''}${sync.pending ? `, ${sync.pending} waiting` : ''}`
+    : sync.state === 'error' ? `Problem: ${sync.error}`
+    : sync.state === 'offline' ? `Offline, ${sync.pending} waiting`
+    : sync.state === 'syncing' ? 'Syncing…' : 'Starting…'
+  const rows: [string, ReactNode][] = [
+    ['Mode', auth.mode === 'cloud' ? 'Cloud (Supabase)' : 'Local-only (no sign-in, no sync)'],
+    ["This app's address", appUrl()],
+    ['Supabase project', connection.host ?? 'not set'],
+    ['Sign-in options on', AUTH_METHODS.join(', ')],
+    ['Signed in as', auth.email ? `${auth.email} (${auth.role})` : '—'],
+    ['Sync', syncText],
+    ['App version', versionLabel()],
+  ]
+  return (
+    <Card title="Connection check">
+      <dl className="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1 text-sm">
+        {rows.map(([k, v]) => <div key={k} className="contents"><dt className="text-slate-500">{k}</dt><dd className="break-all">{v}</dd></div>)}
+        <dt className="text-slate-500">Settings found</dt>
+        <dd>
+          <ul>{connection.variables.map((v) => (
+            <li key={v.name} className="font-mono text-xs"><span aria-hidden="true">{v.found ? '✓' : '·'}</span> {v.name} <span className="font-sans text-slate-400">{v.found ? 'set' : 'not set'}</span></li>
+          ))}</ul>
+        </dd>
+      </dl>
+      <p className="mt-3 text-xs text-slate-500">
+        In Supabase → Authentication → URL Configuration, the Site URL should be this app's address, and the Redirect URLs should include it (and your Vercel preview wildcard). Only the names of settings are shown here, never their values.
+      </p>
     </Card>
   )
 }

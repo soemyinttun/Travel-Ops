@@ -1,3 +1,4 @@
+import { companyDay } from './dates'
 import type { Country, Data, Service } from './types'
 import { placeByName } from './types'
 
@@ -92,11 +93,11 @@ export function rangeFor(preset: Preset, now = new Date()): Range & { prev: Rang
   const day = 86400000
   const year = yearOf(preset)
   if (year !== null) return { from: `${year}-01-01`, to: `${year}-12-31`, prev: { from: `${year - 1}-01-01`, to: `${year - 1}-12-31` } }
-  const to = now.toISOString().slice(0, 10)
+  const to = companyDay(now)
   if (preset === 'all') return { from: '0000-01-01', to, prev: { from: '0000-01-01', to: '0000-01-01' } }
   const n = preset === '30d' ? 30 : preset === '90d' ? 90 : 365
-  const from = new Date(now.getTime() - n * day).toISOString().slice(0, 10)
-  const pfrom = new Date(now.getTime() - 2 * n * day).toISOString().slice(0, 10)
+  const from = companyDay(new Date(now.getTime() - n * day))
+  const pfrom = companyDay(new Date(now.getTime() - 2 * n * day))
   return { from, to, prev: { from: pfrom, to: from } }
 }
 export const inRange = (date: string, r: Range) => date >= r.from && date <= r.to

@@ -9,16 +9,31 @@ import type { Session } from '@supabase/supabase-js'
 import { clearDevice } from '../db'
 import { pendingCount } from '../store'
 import { requestSync, startSync, stopSync } from '../sync/controller'
-import { supabase } from '../sync/supabase'
+import { friendlyAuthError } from './errors'
+import { appUrl } from './redirect'
+import { authRedirect, supabase } from '../sync/supabase'
 import { supabaseRemote } from '../sync/supabaseRemote'
 
 export type Role = 'pending' | 'staff' | 'admin'
 interface AuthCtx {
   mode: 'local' | 'cloud'
-  status: 'loading' | 'signedOut' | 'pending' | 'ready'
+  /** 'setPassword': opened an invite or password-reset link and must choose a password. */
+  status: 'loading' | 'signedOut' | 'setPassword' | 'pending' | 'ready'
   email?: string
   role?: Role
+  /** Problem with the email link the app was opened from, in plain words. */
+  linkError: string | null
   signIn: (email: string, password: string) => Promise<string | null>
+  /** Starts Google sign-in (the browser leaves for Google and comes back). Returns an error message or null. */
+  signInWithGoogle: () => Promise<string | null>
+  /** Emails a one-time sign-in link. Returns an error message or null. */
+  sendMagicLink: (email: string) => Promise<string | null>
+  /** Creates an account (it stays 'pending' until an admin approves it). */
+  signUp: (email: string, password: string) => Promise<{ error: string | null; needsConfirmation: boolean }>
+  /** Emails a link to choose a new password. Returns an error message or null. */
+  sendPasswordReset: (email: string) => Promise<string | null>
+  /** Sets the password after an invite or reset link. Returns an error message or null. */
+  setPassword: (password: string) => Promise<string | null>
   /** Returns false if the user cancelled. */
   signOut: () => Promise<boolean>
   refreshRole: () => Promise<void>
@@ -42,11 +57,15 @@ async function loadRole(uid: string): Promise<Role> {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null | undefined>(supabase ? undefined : null)
   const [role, setRole] = useState<Role>()
+  const [needsPassword, setNeedsPassword] = useState(authRedirect.kind === 'invite' || authRedirect.kind === 'recovery')
 
   useEffect(() => {
     if (!supabase) return
     void supabase.auth.getSession().then(({ data }) => setSession(data.session))
-    const { data } = supabase.auth.onAuthStateChange((_event, s) => setSession(s))
+    const { data } = supabase.auth.onAuthStateChange((event, s) => {
+      if (event === 'PASSWORD_RECOVERY') setNeedsPassword(true)
+      setSession(s)
+    })
     return () => data.subscription.unsubscribe()
   }, [])
 
@@ -69,12 +88,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const value: AuthCtx = supabase
     ? {
         mode: 'cloud',
-        status: session === undefined || (session && !role) ? 'loading' : !session ? 'signedOut' : role === 'pending' ? 'pending' : 'ready',
+        status: session === undefined ? 'loading' : !session ? 'signedOut' : needsPassword ? 'setPassword' : !role ? 'loading' : role === 'pending' ? 'pending' : 'ready',
+        linkError: authRedirect.error,
         ...(session?.user.email ? { email: session.user.email } : {}),
         ...(role ? { role } : {}),
         async signIn(email, password) {
           const { error } = await supabase!.auth.signInWithPassword({ email, password })
-          return error ? error.message : null
+          return error ? friendlyAuthError(error.message) : null
+        },
+        async signInWithGoogle() {
+          const { error } = await supabase!.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: appUrl() } })
+          return error ? friendlyAuthError(error.message) : null
+        },
+        async sendMagicLink(email) {
+          // shouldCreateUser: new people can start an account this way; they stay 'pending' until approved.
+          const { error } = await supabase!.auth.signInWithOtp({ email, options: { emailRedirectTo: appUrl(), shouldCreateUser: true } })
+          return error ? friendlyAuthError(error.message) : null
+        },
+        async signUp(email, password) {
+          const { data, error } = await supabase!.auth.signUp({ email, password, options: { emailRedirectTo: appUrl() } })
+          if (error) return { error: friendlyAuthError(error.message), needsConfirmation: false }
+          // For an address that already has an account Supabase answers with a user that has no identities.
+          if (data.user && data.user.identities?.length === 0) return { error: friendlyAuthError('User already registered'), needsConfirmation: false }
+          return { error: null, needsConfirmation: !data.session }
+        },
+        async sendPasswordReset(email) {
+          // The link brings the person back to this same app address.
+          const { error } = await supabase!.auth.resetPasswordForEmail(email, { redirectTo: appUrl() })
+          return error ? friendlyAuthError(error.message) : null
+        },
+        async setPassword(password) {
+          const { error } = await supabase!.auth.updateUser({ password })
+          if (error) return friendlyAuthError(error.message)
+          setNeedsPassword(false)
+          return null
         },
         async signOut() {
           await requestSync()
@@ -88,7 +135,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         },
         refreshRole,
       }
-    : { mode: 'local', status: 'ready', role: 'admin', signIn: async () => null, signOut: async () => true, refreshRole: async () => {} }
+    : {
+        mode: 'local', status: 'ready', role: 'admin', linkError: null,
+        signIn: async () => null, signInWithGoogle: async () => null, sendMagicLink: async () => null,
+        signUp: async () => ({ error: null, needsConfirmation: false }), sendPasswordReset: async () => null, setPassword: async () => null, signOut: async () => true, refreshRole: async () => {},
+      }
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }

@@ -5,7 +5,7 @@
  */
 import { useSyncExternalStore } from 'react'
 import { onLocalWrite, pendingCount } from '../store'
-import { syncOnce } from './engine'
+import { SyncRowsError, syncOnce, type RowFailure } from './engine'
 import type { RemoteStore } from './remote'
 
 export interface SyncStatus {
@@ -13,6 +13,8 @@ export interface SyncStatus {
   pending: number
   lastSynced?: string
   error?: string
+  /** Records the cloud refused (the rest were uploaded). */
+  failures?: RowFailure[]
 }
 
 const INTERVAL_MS = 60_000
@@ -37,9 +39,12 @@ async function run() {
   setStatus({ state: 'syncing' })
   try {
     await syncOnce(remote)
-    setStatus({ state: 'synced', lastSynced: new Date().toISOString(), error: undefined, pending: await pendingCount() })
+    setStatus({ state: 'synced', lastSynced: new Date().toISOString(), error: undefined, failures: undefined, pending: await pendingCount() })
   } catch (e) {
-    setStatus({ state: navigator.onLine ? 'error' : 'offline', error: (e as Error).message, pending: await pendingCount() })
+    setStatus({
+      state: navigator.onLine ? 'error' : 'offline', error: (e as Error).message, pending: await pendingCount(),
+      failures: e instanceof SyncRowsError ? e.failures : undefined,
+    })
   }
 }
 
@@ -81,7 +86,7 @@ export function stopSync() {
   clearTimeout(writeTimer)
   onLocalWrite(() => {})
   remote = null
-  setStatus({ state: 'off', pending: 0, lastSynced: undefined, error: undefined })
+  setStatus({ state: 'off', pending: 0, lastSynced: undefined, error: undefined, failures: undefined })
 }
 
 export function useSyncStatus(): SyncStatus {

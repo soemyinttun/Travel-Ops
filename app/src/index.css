@@ -1,5 +1,93 @@
 @import "tailwindcss";
 
+/* Design tokens from design.md/alpine_expedition_operations/DESIGN.md.
+   Change a colour here and every page follows. */
+@theme {
+  --color-brand: #0f766e;
+  --color-brand-deep: #115e59;
+  /* Fill behind white text (buttons). Stays the same in dark mode, unlike --color-brand which is the text/link colour. */
+  --color-brand-solid: #0f766e;
+  --color-brand-mist: #f0fdfa;
+  --color-canvas: #f1f5f9;
+  /* Card, input and menu backgrounds (white in light mode). Use bg-surface, not bg-white. */
+  --color-surface: #ffffff;
+  --color-line: #e2e8f0;
+  --color-ink: #0f172a;
+  --color-ink-2: #475569;
+  --color-indigo: #6366f1;
+  --color-indigo-soft: #e0e7ff;
+  --color-amber: #f59e0b;
+  --color-amber-soft: #fef3c7;
+  --color-amber-ink: #92400e;
+  --color-rose: #e11d48;
+  --color-rose-soft: #ffe4e6;
+  --color-rose-ink: #9f1239;
+  --color-emerald: #10b981;
+  --color-emerald-soft: #d1fae5;
+  --color-emerald-ink: #047857;
+  --color-sky: #0ea5e9;
+  --color-sky-soft: #e0f2fe;
+  --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --radius-card: 1rem;
+}
+
 html, body, #root { height: 100%; }
-body { background: #f1f5f9; color: #0f172a; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
+body { background: var(--color-canvas); color: var(--color-ink); font-family: var(--font-sans); -webkit-tap-highlight-color: transparent; }
+/* Money and ids line up in columns. */
+.num { font-variant-numeric: tabular-nums; }
 .leaflet-container { font: inherit; border-radius: 1rem; }
+
+/* Sideways scrollers (filter pills, tabs) without the scrollbar. */
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
+/* Dark mode. The app's colours are variables, so changing them here recolours every screen.
+   The "dark" class is put on <html> by src/theme.tsx (and by a tiny script in index.html before first paint). */
+html.dark {
+  color-scheme: dark;
+  --color-canvas: #0b1220;
+  --color-surface: #131d31;
+  --color-line: #263552;
+  --color-ink: #e6edf7;
+  --color-ink-2: #a9b8cf;
+  --color-brand: #2dd4bf;
+  --color-brand-mist: #0f2f30;
+  --color-slate-50: #172238;
+  --color-slate-100: #1c2a45;
+  --color-slate-200: #263552;
+  --color-slate-300: #36486a;
+  --color-slate-400: #7586a3;
+  --color-slate-500: #9aa9c0;
+  --color-slate-600: #b0bdd1;
+  --color-slate-700: #cbd5e1;
+  --color-indigo-soft: #232d63;
+  --color-indigo-200: #3730a3;
+  --color-indigo-700: #a5b4fc;
+  --color-amber-soft: #3a290a;
+  --color-amber-ink: #fcd34d;
+  --color-amber-50: #2a1f08;
+  --color-amber-200: #78350f;
+  --color-amber-800: #fcd34d;
+  --color-amber-900: #fde68a;
+  --color-rose-soft: #3d1322;
+  --color-rose-ink: #fda4af;
+  --color-rose-50: #2b1019;
+  --color-rose-200: #7f1d34;
+  --color-rose-600: #fb7185;
+  --color-rose-700: #fda4af;
+  --color-rose-800: #fecdd3;
+  --color-emerald-soft: #0c3125;
+  --color-emerald-ink: #6ee7b7;
+  --color-emerald-200: #065f46;
+  --color-emerald-600: #34d399;
+  --color-sky-soft: #0b3047;
+  --color-sky-200: #075985;
+  --color-sky-700: #7dd3fc;
+  --color-teal-50: #0f2f30;
+  --color-teal-100: #134e4a;
+  --color-teal-700: #5eead4;
+  --color-teal-900: #99f6e4;
+}
+/* OpenStreetMap tiles are light; darken them to match. */
+html.dark .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9); }
+html.dark .leaflet-container { background: #0b1220; }
