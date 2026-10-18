@@ -76,6 +76,7 @@ describe('Bookings → add a booking', () => {
     await store.create('packages', { id: 'IN8', name: 'India 8-Day', country: 'India', days: 8, price: 2_800_000, cost: 2_632_000, stops: ['Bodh Gaya'] })
     const { container } = render(<HashRouter><AppProvider><Bookings /></AppProvider></HashRouter>)
 
+    await userEvent.click(await screen.findByRole('button', { name: /New enquiry/ }))
     await screen.findByText('New booking / enquiry')
     const [customerSelect] = Array.from(container.querySelectorAll('select'))
     await waitFor(() => expect(customerSelect!.querySelectorAll('option').length).toBeGreaterThan(1))
@@ -85,7 +86,7 @@ describe('Bookings → add a booking', () => {
     await waitFor(async () => expect((await store.snapshot()).bookings.length).toBe(1))
     const [booking] = (await store.snapshot()).bookings
     expect(booking).toMatchObject({ customerId, packageId: 'IN8', pax: 2, status: 'enquiry', destination: 'Bodh Gaya' })
-    // It appears in the "Recent bookings" table with its value (2 travellers × 2,800,000).
-    await waitFor(() => expect(container.querySelector('tbody')!.textContent).toMatch(/Ko Aung.*India 8-Day.*5,600,000 Ks/))
+    // It appears in the bookings list with its value (2 travellers × 2,800,000).
+    await waitFor(() => expect(container.querySelector('article')!.textContent).toMatch(/Ko Aung.*India 8-Day.*5,600,000 Ks/))
   })
 })

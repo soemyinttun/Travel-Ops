@@ -1,8 +1,12 @@
 import { Link } from 'react-router-dom'
 import { useApp } from '../state'
 import { monthKey, monthsFor, pctDelta, presetLabel, sumBy, totals } from '../analytics'
-import { Card, Chart, Loading, Page, Stat, daysBetween, today } from '../components/ui'
+import { Card, Chart, Loading, daysBetween, today } from '../components/ui'
+import { Icon } from '../components/Icon'
+import { Chip, Hint, IconTile, PageHead, ProgressRow, RecordCard, SectionLabel, StatTile, type Tone } from '../components/kit'
 import { SERVICES } from '../types'
+
+const SERVICE_TONE: Record<string, Tone> = { Package: 'brand', Visa: 'amber', Passport: 'indigo', 'Air ticket': 'rose' }
 
 export default function Overview() {
   const { data, sales, prevSales, scoped, money, filters, setFilters } = useApp()
@@ -24,20 +28,38 @@ export default function Overview() {
     .map((b) => ({ b, c: data.customers.find((c) => c.id === b.customerId)! }))
     .filter(({ b, c }) => c && daysBetween(b.departDate, c.passportExpiry) < 180)
 
+  const byService = sumBy(sales, (s) => s.service).sort((a, b) => b.revenue - a.revenue)
+  const topRevenue = byService[0]?.revenue ?? 0
+  const marginPct = cur.revenue ? (cur.margin / cur.revenue) * 100 : 0
+  const alerts = overdue.length + passportRisk.length
+
   const pipelines = [
     ['Visa open', data.visas.filter((c) => !['Approved', 'Delivered', 'Rejected'].includes(c.stage)).length, '/visa'],
     ['Passport open', data.passports.filter((c) => !['Ready', 'Collected'].includes(c.stage)).length, '/passport'],
-    ['Trips ≤14d', soon.length, '/trips'],
+    ['Trips in 14 days', soon.length, '/trips'],
   ] as const
 
   return (
-    <Page title="Overview" sub={`Showing ${filters.service === 'All' ? 'all services' : filters.service}${filters.dest ? ' · ' + filters.dest : ''} · ${presetLabel(filters.preset)}`}>
+    <div className="space-y-4">
+      <PageHead eyebrow={presetLabel(filters.preset)} title="Overview"
+        sub={`${filters.service === 'All' ? 'All services' : filters.service}${filters.dest ? ' · ' + filters.dest : ''}`} />
+
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Stat label="Revenue" value={money(cur.revenue, true)} delta={noPrev ? undefined : pctDelta(cur.revenue, prev.revenue)} />
-        <Stat label="Gross margin" value={money(cur.margin, true)} delta={noPrev ? undefined : pctDelta(cur.margin, prev.margin)} />
-        <Stat label="Margin %" value={`${cur.revenue ? ((cur.margin / cur.revenue) * 100).toFixed(1) : 0}%`} />
-        <Stat label="Sales" value={String(cur.count)} delta={noPrev ? undefined : pctDelta(cur.count, prev.count)} />
+        <StatTile label="Revenue" value={money(cur.revenue, true)} icon="revenue" tone="brand" delta={noPrev ? undefined : pctDelta(cur.revenue, prev.revenue)} note={noPrev ? undefined : 'vs last period'} />
+        <StatTile label="Gross margin" value={money(cur.margin, true)} icon="overview" tone="emerald" delta={noPrev ? undefined : pctDelta(cur.margin, prev.margin)} note={`${marginPct.toFixed(1)}% of revenue`} />
+        <StatTile label="Sales" value={String(cur.count)} icon="bookings" tone="indigo" delta={noPrev ? undefined : pctDelta(cur.count, prev.count)} note={noPrev ? undefined : 'vs last period'} />
+        <StatTile label="Needs action" value={alerts ? `${alerts}` : '0'} icon="alert" tone={alerts ? 'rose' : 'slate'} note={alerts ? 'see alerts below' : 'all clear'} />
       </div>
+
+      <Card title="Pipelines">
+        <div className="grid grid-cols-3 gap-2">
+          {pipelines.map(([l, n, to]) => (
+            <Link key={l} to={to} className="rounded-xl bg-brand-mist p-3 text-center transition active:scale-95 hover:bg-indigo-soft/50">
+              <div className="num text-2xl font-bold text-brand">{n}</div><div className="text-xs font-medium text-slate-600">{l}</div>
+            </Link>
+          ))}
+        </div>
+      </Card>
 
       <div className="grid gap-3 lg:grid-cols-3">
         <Card title="Monthly revenue by service" className="lg:col-span-2">
@@ -55,43 +77,59 @@ export default function Overview() {
             }}
           />
         </Card>
-        <Card title="Revenue by market (click to filter)">
-          <Chart
-            height={300}
-            onClick={(p) => p.name && setFilters({ service: p.name as never })}
-            option={{
-              tooltip: { trigger: 'item', valueFormatter: (v: number) => money(v) },
-              series: [{ type: 'pie', radius: ['45%', '72%'], data: sumBy(sales, (s) => s.service).map((a) => ({ name: a.key, value: a.revenue })) }],
-            }}
-          />
+        <Card title="Revenue by service (tap to filter)">
+          <div className="space-y-3">
+            {byService.map((a) => (
+              <button key={a.key} className="block w-full text-left" onClick={() => setFilters({ service: a.key as never })}>
+                <ProgressRow label={a.key} value={money(a.revenue, true)} pct={topRevenue ? (a.revenue / topRevenue) * 100 : 0}
+                  tone={SERVICE_TONE[a.key] ?? 'brand'} right={`${cur.revenue ? ((a.revenue / cur.revenue) * 100).toFixed(0) : 0}%`} />
+              </button>
+            ))}
+            {!byService.length && <p className="text-sm text-slate-400">No sales in this period.</p>}
+          </div>
         </Card>
       </div>
 
-      <div className="grid gap-3 lg:grid-cols-3">
-        <Card title="Pipelines">
-          <div className="grid grid-cols-3 gap-2">
-            {pipelines.map(([l, n, to]) => (
-              <Link key={l} to={to} className="rounded-xl bg-slate-50 p-3 text-center hover:bg-teal-50">
-                <div className="text-2xl font-semibold">{n}</div><div className="text-xs text-slate-500">{l}</div>
-              </Link>
-            ))}
-          </div>
-        </Card>
-        <Card title={`Upcoming departures (${soon.length})`}>
-          <ul className="space-y-1 text-sm">
-            {soon.slice(0, 5).map((b) => (
-              <li key={b.id} className="flex justify-between"><span>{custName.get(b.customerId)} · {pkg.get(b.packageId)?.name}</span><span className="text-slate-500">{b.departDate}</span></li>
-            ))}
-            {!soon.length && <li className="text-slate-400">No trips in the next 14 days</li>}
-          </ul>
-        </Card>
-        <Card title="Alerts">
-          <ul className="space-y-1 text-sm">
-            <li className={overdue.length ? 'text-rose-700' : 'text-slate-400'}>{overdue.length} visa/passport cases past deadline</li>
-            <li className={passportRisk.length ? 'text-amber-700' : 'text-slate-400'}>{passportRisk.length} upcoming travellers with passport valid &lt; 6 months at departure</li>
-          </ul>
-        </Card>
-      </div>
-    </Page>
+      <section className="space-y-2">
+        <SectionLabel tone="rose" right={alerts ? <Chip tone="rose">{alerts} to check</Chip> : undefined}>Action required</SectionLabel>
+        {overdue.length > 0 && (
+          <RecordCard urgent>
+            <div className="flex items-start gap-3">
+              <IconTile name="alert" tone="rose" />
+              <div className="min-w-0 flex-1">
+                <div className="font-semibold text-ink">{overdue.length} visa / passport {overdue.length === 1 ? 'case is' : 'cases are'} past the deadline</div>
+                <p className="text-sm text-slate-500">Move them on, or call the customer.</p>
+              </div>
+            </div>
+            <Link to="/visa" className="inline-flex items-center gap-2 rounded-xl bg-rose px-4 py-2 text-sm font-semibold text-white active:scale-95">Open cases <Icon name="chevron" className="h-4 w-4" /></Link>
+          </RecordCard>
+        )}
+        {passportRisk.length > 0 && (
+          <RecordCard>
+            <div className="flex items-start gap-3">
+              <IconTile name="passport" tone="amber" />
+              <div className="min-w-0 flex-1">
+                <div className="font-semibold text-ink">{passportRisk.length} {passportRisk.length === 1 ? 'traveller has' : 'travellers have'} a passport valid under 6 months at departure</div>
+                <p className="truncate text-sm text-slate-500">{passportRisk.slice(0, 3).map(({ c }) => c.name).join(', ')}{passportRisk.length > 3 ? '…' : ''}</p>
+              </div>
+            </div>
+            <Link to="/customers" className="inline-flex items-center gap-2 rounded-xl bg-indigo-soft/60 px-4 py-2 text-sm font-semibold text-brand active:scale-95">Check customers <Icon name="chevron" className="h-4 w-4" /></Link>
+          </RecordCard>
+        )}
+        {!alerts && <Hint icon="check" tone="emerald" title="All clear">No visa or passport deadlines missed, and every upcoming passport is valid.</Hint>}
+      </section>
+
+      <Card title={`Upcoming departures (${soon.length})`} right={<Link to="/trips" className="text-sm font-semibold text-brand">Open trips</Link>}>
+        <ul className="divide-y divide-line text-sm">
+          {soon.slice(0, 5).map((b) => (
+            <li key={b.id} className="flex items-center justify-between gap-3 py-2">
+              <span className="min-w-0 truncate"><b className="font-semibold text-ink">{custName.get(b.customerId)}</b> · {pkg.get(b.packageId)?.name}</span>
+              <Chip tone="brand">{b.departDate.slice(5)}</Chip>
+            </li>
+          ))}
+          {!soon.length && <li className="py-2 text-slate-400">No confirmed trips in the next 14 days.</li>}
+        </ul>
+      </Card>
+    </div>
   )
 }
