@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import * as store from '../store'
 import { useApp } from '../state'
 import { PASSPORT_KINDS, PASSPORT_STAGES, VISA_KINDS, VISA_STAGES, type Case } from '../types'
@@ -6,6 +7,8 @@ import { Card, Chart, Loading, btn, btnGhost, daysBetween, formGrid, inp, today 
 import { Icon } from '../components/Icon'
 import { ActionButton, Avatar, Chip, FilterChips, Hint, PageHead, RecordCard, StatTile, Strip } from '../components/kit'
 import { CustomerSelect } from '../components/CustomerSelect'
+import { EditCase } from '../components/EditDialogs'
+import { smsLink } from '../contact'
 
 const CFG = {
   visa: { title: 'Visa', eyebrow: 'Visa services', stages: VISA_STAGES, done: ['Approved', 'Rejected', 'Delivered'], kinds: VISA_KINDS, table: 'visas' as const, defFee: 160_000 },
@@ -20,6 +23,7 @@ export default function Pipeline({ kind }: { kind: 'visa' | 'passport' }) {
   const [form, setForm] = useState({ customerId: '', kind: cfg.kinds[0], fee: cfg.defFee, deadline: '' })
   const [picked, setView] = useState<View | null>(null)
   const [adding, setAdding] = useState(false)
+  const [editing, setEditing] = useState<Case | null>(null)
   const [more, setMore] = useState(SHOWN)
   if (!data) return <Loading />
   const rows: Case[] = kind === 'visa' ? data.visas : data.passports
@@ -98,6 +102,7 @@ export default function Pipeline({ kind }: { kind: 'visa' | 'passport' }) {
           const late = isLate(c)
           const next = cfg.stages[cfg.stages.indexOf(c.stage) + 1]
           const left = c.deadline ? daysBetween(t, c.deadline) : null
+          const cust = data.customers.find((x) => x.id === c.customerId)
           return (
             <RecordCard key={c.id} urgent={late}>
               <div className="flex items-start gap-3">
@@ -118,12 +123,18 @@ export default function Pipeline({ kind }: { kind: 'visa' | 'passport' }) {
                   {cfg.stages.map((s) => <option key={s}>{s}</option>)}
                 </select>
               </label>
+              <div className="flex flex-wrap gap-2">
+                <button className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-soft/60 px-3 py-2 text-sm font-semibold text-brand transition active:scale-95 hover:bg-indigo-soft" onClick={() => setEditing(c)}><Icon name="edit" className="h-4 w-4" />Edit</button>
+                {cust?.phone && !isDone(c) && <a className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-soft/60 px-3 py-2 text-sm font-semibold text-brand transition active:scale-95 hover:bg-indigo-soft" href={smsLink(cust.phone, `Hello ${cust.name}, this is SSM Travel & Tours about your ${kind} (${c.kind}). Current step: ${c.stage}.${c.deadline ? ` Deadline: ${c.deadline}.` : ''} Please send any missing documents.`)}>Remind</a>}
+                <Link className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-soft/60 px-3 py-2 text-sm font-semibold text-brand transition active:scale-95 hover:bg-indigo-soft" to={`/customers/${c.customerId}`}>Dossier</Link>
+              </div>
               {next && !isDone(c) && <ActionButton icon="chevron" tone={late ? 'rose' : 'brand'} className="w-full" onClick={() => void setStage(c, next)}>Move to {next}</ActionButton>}
             </RecordCard>
           )
         })}
       </div>
 
+      {editing && <EditCase kind={kind} row={editing} onClose={() => setEditing(null)} />}
       {!list.length && <Hint icon="check" tone="emerald" title={view === 'overdue' ? 'Nothing overdue' : 'No cases here'}>{view === 'overdue' ? 'Every open case is within its deadline.' : 'Try another filter, or add a new case.'}</Hint>}
       {shownRows.length > list.length && <div className="text-center"><button className={btnGhost} onClick={() => setMore((n) => n + SHOWN)}>Show more ({shownRows.length - list.length} left)</button></div>}
 

@@ -1,11 +1,14 @@
 import { useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import * as store from '../store'
 import { useApp } from '../state'
-import { DESTINATIONS, type BookingStatus } from '../types'
+import { DESTINATIONS, type Booking, type BookingStatus } from '../types'
 import { Card, Loading, btn, btnGhost, formGrid, inp, today } from '../components/ui'
 import { Icon } from '../components/Icon'
 import { ActionButton, Avatar, Chip, FilterChips, Hint, PageHead, RecordCard, SearchBox, StatTile, Strip, type Tone } from '../components/kit'
 import { CustomerSelect } from '../components/CustomerSelect'
+import { EditBooking } from '../components/EditDialogs'
+import { smsLink } from '../contact'
 
 const STATUSES: BookingStatus[] = ['enquiry', 'confirmed', 'completed', 'cancelled']
 const STATUS_TONE: Record<BookingStatus, Tone> = { enquiry: 'slate', confirmed: 'brand', completed: 'emerald', cancelled: 'rose' }
@@ -16,7 +19,10 @@ export default function Bookings() {
   const { data, money } = useApp()
   const [f, setF] = useState({ customerId: '', packageId: 'IN8', destination: 'Bodh Gaya', departDate: today(), pax: 2, status: 'enquiry' as BookingStatus })
   const [q, setQ] = useState('')
-  const [show, setShow] = useState<BookingStatus | 'all'>('all')
+  const [params] = useSearchParams()
+  const start = params.get('status')
+  const [show, setShow] = useState<BookingStatus | 'all'>(STATUSES.includes(start as BookingStatus) ? (start as BookingStatus) : 'all')
+  const [editing, setEditing] = useState<Booking | null>(null)
   const [adding, setAdding] = useState(false)
   const [more, setMore] = useState(SHOWN)
   if (!data) return <Loading />
@@ -76,6 +82,7 @@ export default function Bookings() {
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {rows.map((b) => {
           const who = name.get(b.customerId) ?? 'Unknown customer'
+          const cust = data.customers.find((c) => c.id === b.customerId)
           const p = pkg.get(b.packageId)
           return (
             <RecordCard key={b.id}>
@@ -96,16 +103,20 @@ export default function Bookings() {
                   <div className="inline-flex items-center gap-1"><Icon name="pin" className="h-4 w-4" />{b.destination}</div>
                   <div className="num font-semibold text-ink">{money((p?.price ?? 0) * b.pax)}</div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <select aria-label={`Status of ${who}`} className={`${inp} !py-1.5 !text-sm`} value={b.status} onChange={(e) => store.patch('bookings', b.id, { status: e.target.value as BookingStatus })}>{STATUSES.map((s) => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}</select>
-                  <button aria-label="Delete booking" className="rounded-lg bg-rose-soft/60 p-2.5 text-rose-ink transition active:scale-95 hover:bg-rose-soft" onClick={() => confirm('Delete this booking?') && store.remove('bookings', b.id)}><Icon name="trash" className="h-4 w-4" /></button>
-                </div>
+                <select aria-label={`Status of ${who}`} className={`${inp} !py-1.5 !text-sm`} value={b.status} onChange={(e) => store.patch('bookings', b.id, { status: e.target.value as BookingStatus })}>{STATUSES.map((s) => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}</select>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-soft/60 px-3 py-2 text-sm font-semibold text-brand transition active:scale-95 hover:bg-indigo-soft" onClick={() => setEditing(b)}><Icon name="edit" className="h-4 w-4" />Edit</button>
+                {cust?.phone && <a className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-soft/60 px-3 py-2 text-sm font-semibold text-brand transition active:scale-95 hover:bg-indigo-soft" href={smsLink(cust.phone, `Hello ${who}, this is SSM Travel & Tours. A reminder about your ${p?.name ?? 'trip'} on ${b.departDate}. Please contact us if you have any questions.`)}>Send reminder</a>}
+                <Link className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-soft/60 px-3 py-2 text-sm font-semibold text-brand transition active:scale-95 hover:bg-indigo-soft" to={`/customers/${b.customerId}`}>View dossier</Link>
+                <button aria-label="Delete booking" className="ml-auto rounded-xl bg-rose-soft/60 p-2.5 text-rose-ink transition active:scale-95 hover:bg-rose-soft" onClick={() => confirm('Delete this booking?') && store.remove('bookings', b.id)}><Icon name="trash" className="h-4 w-4" /></button>
               </div>
             </RecordCard>
           )
         })}
       </div>
 
+      {editing && <EditBooking booking={editing} onClose={() => setEditing(null)} />}
       {!rows.length && <Hint icon="search" title="No bookings found">Try another word or choose All.</Hint>}
       {matching.length > rows.length && <div className="text-center"><button className={btnGhost} onClick={() => setMore((n) => n + SHOWN)}>Show more ({matching.length - rows.length} left)</button></div>}
     </div>

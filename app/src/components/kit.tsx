@@ -174,3 +174,47 @@ export function SectionLabel({ tone = 'brand', children, right }: { tone?: Tone;
     </div>
   )
 }
+
+const HEX: Record<Tone, string> = { brand: '#0f766e', amber: '#f59e0b', rose: '#e11d48', emerald: '#10b981', indigo: '#6366f1', sky: '#0ea5e9', slate: '#64748b' }
+export interface Slice { label: string; value: number; tone: Tone }
+
+/** One long bar split into coloured parts, with a legend underneath. */
+export function SegmentBar({ items, format }: { items: Slice[]; format: (v: number) => string }) {
+  const total = items.reduce((s, i) => s + i.value, 0)
+  return (
+    <div>
+      <div className="flex h-5 w-full gap-0.5 overflow-hidden rounded-md bg-slate-100" role="img" aria-label={items.map((i) => `${i.label} ${total ? Math.round((i.value / total) * 100) : 0}%`).join(', ')}>
+        {items.filter((i) => i.value > 0).map((i) => <div key={i.label} className={`h-full ${BAR[i.tone]}`} style={{ width: `${(i.value / total) * 100}%` }} title={i.label} />)}
+      </div>
+      <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 sm:grid-cols-4">
+        {items.map((i) => (
+          <div key={i.label} className="flex items-center gap-2">
+            <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${BAR[i.tone]}`} />
+            <div className="min-w-0 text-xs"><div className="font-semibold text-ink">{i.label}</div><div className="num text-slate-500">{format(i.value)} ({total ? Math.round((i.value / total) * 100) : 0}%)</div></div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/** Ring chart. Tap a slice name in the list beside it (the parent decides what to show). */
+export function Donut({ items, center, size = 128 }: { items: Slice[]; center: ReactNode; size?: number }) {
+  const total = items.reduce((s, i) => s + i.value, 0) || 1
+  const r = 15.9155
+  let offset = 0
+  return (
+    <div className="relative shrink-0" style={{ width: size, height: size }}>
+      <svg viewBox="0 0 36 36" className="h-full w-full -rotate-90" role="img" aria-label="Share of revenue by market">
+        <circle cx="18" cy="18" r={r} fill="none" stroke="#e2e8f0" strokeWidth="4" />
+        {items.map((i) => {
+          const len = (i.value / total) * 100
+          const el = <circle key={i.label} cx="18" cy="18" r={r} fill="none" stroke={HEX[i.tone]} strokeWidth="4" strokeDasharray={`${Math.max(len - 0.6, 0)} ${100 - Math.max(len - 0.6, 0)}`} strokeDashoffset={-offset} />
+          offset += len
+          return el
+        })}
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center text-center leading-tight">{center}</div>
+    </div>
+  )
+}

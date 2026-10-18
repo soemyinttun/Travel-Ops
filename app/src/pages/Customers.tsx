@@ -1,9 +1,12 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import * as store from '../store'
 import { useApp } from '../state'
-import { ORIGINS } from '../types'
+import { ORIGINS, type Customer } from '../types'
 import { Card, Loading, btn, btnGhost, daysBetween, formGrid, inp, today } from '../components/ui'
 import { Icon } from '../components/Icon'
+import { EditCustomer } from '../components/EditDialogs'
+import { smsLink, telLink } from '../contact'
 import { ActionButton, Avatar, Chip, FilterChips, Hint, PageHead, RecordCard, SearchBox, StatTile, Strip, type Tone } from '../components/kit'
 
 type View = 'all' | 'soon' | 'expired' | 'none'
@@ -14,6 +17,7 @@ export default function Customers() {
   const [q, setQ] = useState('')
   const [view, setView] = useState<View>('all')
   const [adding, setAdding] = useState(false)
+  const [editing, setEditing] = useState<Customer | null>(null)
   const [more, setMore] = useState(SHOWN)
   const [f, setF] = useState({ name: '', phone: '', township: 'Yangon', passportExpiry: '' })
   if (!data) return <Loading />
@@ -94,14 +98,19 @@ export default function Customers() {
                 <span className="inline-flex items-center gap-2 font-medium"><Icon name="passport" className="h-4 w-4" />{c.passportExpiry || 'No passport date'}</span>
                 <Chip tone={tone}>{text}{d !== null && d >= 0 && k !== 'valid' ? ` · ${d} days` : ''}</Chip>
               </Strip>
-              <div className="flex justify-end">
-                <button aria-label="Delete customer" className="inline-flex items-center gap-1.5 rounded-lg bg-rose-soft/60 px-3 py-2 text-sm font-semibold text-rose-ink transition active:scale-95 hover:bg-rose-soft" onClick={() => remove(c.id)}><Icon name="trash" className="h-4 w-4" />Delete</button>
+              <div className="flex flex-wrap gap-2">
+                <Link className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-soft/60 px-3 py-2 text-sm font-semibold text-brand transition active:scale-95 hover:bg-indigo-soft" to={`/customers/${c.id}`}>View dossier</Link>
+                {c.phone && <a className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-soft/60 px-3 py-2 text-sm font-semibold text-brand transition active:scale-95 hover:bg-indigo-soft" href={telLink(c.phone)}>Call</a>}
+                {c.phone && (k === 'expired' || k === 'soon') && <a className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-soft/60 px-3 py-2 text-sm font-semibold text-brand transition active:scale-95 hover:bg-indigo-soft" href={smsLink(c.phone, `Hello ${c.name}, this is SSM Travel & Tours. Your passport ${k === 'expired' ? 'has expired' : `expires on ${c.passportExpiry}`}. Please bring it to our office to renew before your next trip.`)}>Send reminder</a>}
+                <button className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-soft/60 px-3 py-2 text-sm font-semibold text-brand transition active:scale-95 hover:bg-indigo-soft" onClick={() => setEditing(c)}><Icon name="edit" className="h-4 w-4" />Edit</button>
+                <button aria-label="Delete customer" className="ml-auto rounded-xl bg-rose-soft/60 p-2.5 text-rose-ink transition active:scale-95 hover:bg-rose-soft" onClick={() => remove(c.id)}><Icon name="trash" className="h-4 w-4" /></button>
               </div>
             </RecordCard>
           )
         })}
       </div>
 
+      {editing && <EditCustomer customer={editing} onClose={() => setEditing(null)} />}
       {!rows.length && <Hint icon="search" title="No customers found">Try another word or choose All clients.</Hint>}
       {matching.length > rows.length && <div className="text-center"><button className={btnGhost} onClick={() => setMore((x) => x + SHOWN)}>Show more ({matching.length - rows.length} left)</button></div>}
     </div>

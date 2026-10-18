@@ -17,6 +17,8 @@ import Customers from './pages/Customers'
 import Settings from './pages/Settings'
 import Admin from './pages/Admin'
 import More from './pages/More'
+import CustomerDetail from './pages/CustomerDetail'
+import { HeaderTools } from './components/HeaderTools'
 import { useAuth } from './auth/AuthProvider'
 import { usePendingCount } from './auth/admin'
 import { useSyncStatus, requestSync } from './sync/controller'
@@ -49,7 +51,7 @@ export default function App() {
   const nav = NAV.filter(([to]) => to !== '/admin' || role === 'admin')
   const pending = usePendingCount(role === 'admin' && mode === 'cloud')
   const loc = useLocation()
-  const here = NAV.find(([to]) => to === loc.pathname)?.[1] ?? (loc.pathname === '/more' ? 'More' : '')
+  const here = NAV.find(([to]) => to === loc.pathname)?.[1] ?? (loc.pathname === '/more' ? 'More' : loc.pathname.startsWith('/customers/') ? 'Customers' : '')
   return (
     <div className="flex h-full flex-col md:flex-row">
       <aside className="hidden shrink-0 flex-col gap-1 overflow-y-auto border-r border-line bg-white p-2 md:flex md:w-16 lg:w-56 lg:p-3">
@@ -69,7 +71,7 @@ export default function App() {
               <Logo name="SSM TRAVEL" className="text-base tracking-wide" />
               {here && <div className="ml-9 -mt-0.5 text-[11px] font-medium text-slate-500">{here}</div>}
             </div>
-            <SyncPill />
+            <div className="flex items-center gap-2"><SyncPill /><HeaderTools /></div>
           </div>
           <div className="mt-2 flex items-center gap-2 md:mt-0">
             <div className="no-scrollbar -mx-1 flex min-w-0 flex-1 items-center gap-2 overflow-x-auto px-1 pb-0.5 md:flex-none md:overflow-visible">
@@ -92,7 +94,7 @@ export default function App() {
                 </button>
               )}
             </div>
-            <div className="ml-auto hidden md:block"><SyncPill /></div>
+            <div className="ml-auto hidden items-center gap-2 md:flex"><SyncPill /><HeaderTools /></div>
           </div>
         </header>
 
@@ -109,6 +111,7 @@ export default function App() {
             <Route path="/heatmaps" element={<Heatmaps />} />
             <Route path="/bookings" element={<Bookings />} />
             <Route path="/customers" element={<Customers />} />
+            <Route path="/customers/:id" element={<CustomerDetail />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/more" element={<More pending={pending} />} />

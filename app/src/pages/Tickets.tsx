@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import * as store from '../store'
 import { useApp } from '../state'
 import { inRange, rangeFor, sumBy } from '../analytics'
@@ -6,7 +7,9 @@ import { Card, Chart, Loading, Seg, btn, btnGhost, formGrid, inp, today } from '
 import { Icon } from '../components/Icon'
 import { ActionButton, Chip, Hint, PageHead, ProgressRow, RecordCard, StatTile, Strip, type Tone } from '../components/kit'
 import { CustomerSelect } from '../components/CustomerSelect'
-import { DESTINATIONS, ORIGINS } from '../types'
+import { EditTicket } from '../components/EditDialogs'
+import { smsLink } from '../contact'
+import { DESTINATIONS, ORIGINS, type Ticket } from '../types'
 
 const CITIES = [...ORIGINS, ...DESTINATIONS].map((p) => p.name)
 const TONES: Tone[] = ['brand', 'indigo', 'amber', 'sky', 'rose', 'emerald']
@@ -16,11 +19,13 @@ export default function Tickets() {
   const { data, money, filters } = useApp()
   const [dir, setDir] = useState<'All' | 'Inbound' | 'Outbound'>('All')
   const [adding, setAdding] = useState(false)
+  const [editing, setEditing] = useState<Ticket | null>(null)
   const [more, setMore] = useState(SHOWN)
   const [f, setF] = useState({ customerId: '', direction: 'Outbound' as 'Inbound' | 'Outbound', from: 'Yangon', to: 'Bodh Gaya', airline: 'Myanmar Airways Intl', date: today(), fare: 900_000, commission: 40_000 })
   if (!data) return <Loading />
   const r = rangeFor(filters.preset)
   const name = new Map(data.customers.map((c) => [c.id!, c.name]))
+  const phone = new Map(data.customers.map((c) => [c.id!, c.phone]))
   const rows = data.tickets.filter((t) => inRange(t.date, r) && (dir === 'All' || t.direction === dir))
   const sales = rows.map((t) => ({ revenue: t.fare, margin: t.commission, route: `${t.from}→${t.to}`, airline: t.airline }))
   const byRoute = sumBy(sales, (s) => s.route).slice(0, 10)
@@ -101,9 +106,16 @@ export default function Tickets() {
               <span>Fare <b className="font-semibold text-ink">{money(t.fare)}</b></span>
               <span className="text-emerald-ink">Commission <b className="font-semibold">{money(t.commission)}</b></span>
             </div>
+            <div className="flex flex-wrap gap-2">
+              <button className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-soft/60 px-3 py-2 text-sm font-semibold text-brand transition active:scale-95 hover:bg-indigo-soft" onClick={() => setEditing(t)}><Icon name="edit" className="h-4 w-4" />Update passenger</button>
+              {phone.get(t.customerId) && <a className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-soft/60 px-3 py-2 text-sm font-semibold text-brand transition active:scale-95 hover:bg-indigo-soft" href={smsLink(phone.get(t.customerId)!, `Hello ${name.get(t.customerId)}, your ${t.airline} flight ${t.from} to ${t.to} is on ${t.date}. Please arrive at the airport 3 hours early with your passport. SSM Travel & Tours.`)}>Send flight details</a>}
+              <Link className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-soft/60 px-3 py-2 text-sm font-semibold text-brand transition active:scale-95 hover:bg-indigo-soft" to={`/customers/${t.customerId}`}>Dossier</Link>
+              <button aria-label="Delete ticket" className="ml-auto rounded-xl bg-rose-soft/60 p-2.5 text-rose-ink transition active:scale-95 hover:bg-rose-soft" onClick={() => confirm('Delete this ticket?') && store.remove('tickets', t.id)}><Icon name="trash" className="h-4 w-4" /></button>
+            </div>
           </RecordCard>
         ))}
       </div>
+      {editing && <EditTicket ticket={editing} onClose={() => setEditing(null)} />}
       {!list.length && <Hint icon="tickets" tone="indigo" title="No tickets here">Add one with the button above, or change the date range.</Hint>}
       {sorted.length > list.length && <div className="text-center"><button className={btnGhost} onClick={() => setMore((n) => n + SHOWN)}>Show more ({sorted.length - list.length} left)</button></div>}
     </div>
