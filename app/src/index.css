@@ -1,5 +1,38 @@
 @import "tailwindcss";
 
+/* Design tokens from design.md/alpine_expedition_operations/DESIGN.md.
+   Change a colour here and every page follows. */
+@theme {
+  --color-brand: #0f766e;
+  --color-brand-deep: #115e59;
+  --color-brand-mist: #f0fdfa;
+  --color-canvas: #f1f5f9;
+  --color-line: #e2e8f0;
+  --color-ink: #0f172a;
+  --color-ink-2: #475569;
+  --color-indigo: #6366f1;
+  --color-indigo-soft: #e0e7ff;
+  --color-amber: #f59e0b;
+  --color-amber-soft: #fef3c7;
+  --color-amber-ink: #92400e;
+  --color-rose: #e11d48;
+  --color-rose-soft: #ffe4e6;
+  --color-rose-ink: #9f1239;
+  --color-emerald: #10b981;
+  --color-emerald-soft: #d1fae5;
+  --color-emerald-ink: #047857;
+  --color-sky: #0ea5e9;
+  --color-sky-soft: #e0f2fe;
+  --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --radius-card: 1rem;
+}
+
 html, body, #root { height: 100%; }
-body { background: #f1f5f9; color: #0f172a; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
+body { background: var(--color-canvas); color: var(--color-ink); font-family: var(--font-sans); -webkit-tap-highlight-color: transparent; }
+/* Money and ids line up in columns. */
+.num { font-variant-numeric: tabular-nums; }
 .leaflet-container { font: inherit; border-radius: 1rem; }
+
+/* Sideways scrollers (filter pills, tabs) without the scrollbar. */
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }

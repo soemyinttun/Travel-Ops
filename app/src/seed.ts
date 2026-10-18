@@ -1,6 +1,8 @@
 import { db, deleteLegacyData, readLegacyData } from './db'
 import { checkBackup } from './importer/validate'
 import { replaceAll } from './store'
+import { buildShowcase } from './demo'
+import { companyDay } from './dates'
 
 /**
  * Optional local demo data. The dataset file (src/data/dataset-2024.json) is kept out of the
@@ -28,6 +30,13 @@ export async function prepareLocalData() {
 /** "Reset to demo data" (local-only mode with the demo file present). */
 export async function loadDemoData() {
   const { data, errors } = checkBackup(DEMO_DATA)
+  if (!data) throw new Error(errors[0])
+  await replaceAll(data)
+}
+
+/** Made-up presentation data (see demo.ts), worked out from today so it always looks current. */
+export async function loadShowcaseData() {
+  const { data, errors } = checkBackup(buildShowcase(companyDay()))
   if (!data) throw new Error(errors[0])
   await replaceAll(data)
 }

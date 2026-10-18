@@ -4,5 +4,5 @@
     "moduleResolution": "bundler", "jsx": "react-jsx", "strict": true, "skipLibCheck": true,
     "noEmit": true, "isolatedModules": true, "types": ["vite/client", "vite-plugin-pwa/client"]
   },
-  "include": ["src", "vite.config.ts"]
+  "include": ["src", "build", "tests", "vite.config.ts"]
 }

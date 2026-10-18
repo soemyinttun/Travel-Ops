@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { clearDevice, table } from '../db'
 import * as store from '../store'
 import { TABLES, type TableName } from '../types'
-import { syncOnce } from './engine'
+import { SyncRowsError, syncOnce } from './engine'
 import type { Cursor, RemoteRow, RemoteStore } from './remote'
 
 /**
@@ -14,11 +14,16 @@ class FakeCloud implements RemoteStore {
   rows = new Map<TableName, Map<string, RemoteRow>>(TABLES.map((t) => [t, new Map()]))
   private clock = Date.parse('2026-01-01T00:00:00Z')
   online = true
+  pushCalls = 0
+  /** Like a database rule: the whole batch fails if any row in it matches. */
+  rejectRow: ((t: TableName, row: Record<string, unknown>) => boolean) | null = null
   beforePush: (() => Promise<void>) | null = null
   private stampNow() { this.clock += 1000; return new Date(this.clock).toISOString() }
 
   async push(t: TableName, rows: Record<string, unknown>[]) {
+    this.pushCalls++
     if (!this.online) throw new Error('Failed to fetch')
+    if (this.rejectRow && rows.some((r) => this.rejectRow!(t, r))) throw new Error('Upload to customers failed: new row violates check constraint')
     if (this.beforePush) { const f = this.beforePush; this.beforePush = null; await f() }
     for (const r of rows) this.rows.get(t)!.set(r['id'] as string, { ...r, updatedAt: this.stampNow() } as RemoteRow)
   }
@@ -95,6 +100,40 @@ describe('sync engine', () => {
     await syncOnce(cloud)
     expect(await store.pendingCount()).toBe(0)
     expect(cloud.rows.get('customers')!.size).toBe(2)
+  })
+
+  it('one bad record no longer blocks the others: good ones upload, the bad one is named', async () => {
+    const good1 = await store.create('customers', customer('Good 1'))
+    const bad = await store.create('customers', customer('BAD'))
+    const good2 = await store.create('customers', customer('Good 2'))
+    cloud.rejectRow = (_t, row) => row['name'] === 'BAD'
+    const error = await syncOnce(cloud).catch((e: unknown) => e)
+    expect(error).toBeInstanceOf(SyncRowsError)
+    const failures = (error as SyncRowsError).failures
+    expect(failures).toEqual([{ table: 'customers', id: bad, message: 'new row violates check constraint' }])
+    expect([...cloud.rows.get('customers')!.keys()].sort()).toEqual([good1, good2].sort())
+    expect(await store.pendingCount()).toBe(1)
+    // After the record is fixed, the next sync uploads it.
+    await store.patch('customers', bad, { name: 'Fixed' })
+    await syncOnce(cloud)
+    expect(cloud.rows.get('customers')!.size).toBe(3)
+    expect(await store.pendingCount()).toBe(0)
+  })
+
+  it('still downloads changes from other devices when some records fail to upload', async () => {
+    await store.create('customers', customer('BAD'))
+    cloud.otherDevice('packages', { id: 'IN8', name: 'India 8-Day', country: 'India', days: 8, price: 1, cost: 1, stops: [] })
+    cloud.rejectRow = (_t, row) => row['name'] === 'BAD'
+    await expect(syncOnce(cloud)).rejects.toBeInstanceOf(SyncRowsError)
+    expect(await table('packages').get('IN8')).toMatchObject({ name: 'India 8-Day' })
+  })
+
+  it('does not retry row by row when the problem is no connection', async () => {
+    for (let i = 0; i < 5; i++) await store.create('customers', customer(`C${i}`))
+    cloud.online = false
+    await expect(syncOnce(cloud)).rejects.toThrow('Failed to fetch')
+    expect(cloud.pushCalls).toBe(1)
+    expect(await store.pendingCount()).toBe(5)
   })
 
   it('uploads parents before children so references are valid', async () => {
