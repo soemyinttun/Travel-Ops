@@ -1,5 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useApp } from '../state'
+import { useAuth } from '../auth/AuthProvider'
+import { loadShowcaseData } from '../seed'
 import { monthKey, monthsFor, pctDelta, presetLabel, sumBy, totals } from '../analytics'
 import { Card, Chart, Loading, daysBetween, today } from '../components/ui'
 import { Icon } from '../components/Icon'
@@ -10,7 +12,16 @@ const SERVICE_TONE: Record<string, Tone> = { Package: 'brand', Visa: 'amber', Pa
 
 export default function Overview() {
   const { data, sales, prevSales, scoped, money, filters, setFilters } = useApp()
+  const { mode } = useAuth()
   if (!data) return <Loading />
+  if (!data.customers.length && mode === 'local') {
+    return (
+      <div className="mx-auto max-w-xl space-y-4 pt-6">
+        <PageHead eyebrow="Welcome" title="No data on this device yet" sub="Load made-up presentation data to see every screen, or import a backup in Admin." />
+        <button className="w-full rounded-xl bg-brand px-4 py-3 text-sm font-semibold text-white transition active:scale-95 hover:bg-brand-deep" onClick={() => void loadShowcaseData().then(() => setFilters({ preset: '12m', service: 'All', dest: null }))}>Load presentation demo</button>
+      </div>
+    )
+  }
   const cur = totals(sales), prev = totals(prevSales)
   const noPrev = filters.preset === 'all' || prev.count < cur.count * 0.3
   const months = monthsFor(filters.preset)

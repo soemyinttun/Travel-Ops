@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { clearDevice } from '../db'
-import { DEMO_DATA, loadDemoData } from '../seed'
+import { DEMO_DATA, loadDemoData, loadShowcaseData } from '../seed'
 import { backupStatus, downloadBackup } from '../backup'
 import { versionLabel } from '../version'
 import { useApp } from '../state'
@@ -103,6 +103,14 @@ export default function Settings() {
         </p>
         {msg && <p className="mt-2 text-sm text-slate-600">{msg}</p>}
       </Section>
+
+      {auth.mode === 'local' && (
+        <Section icon="compass" title="Presentation demo" tag={<Chip tone="sky">Made-up data</Chip>}>
+          <p className="mb-3 text-sm text-slate-600">Fills this device with invented customers, trips, cases and tickets for a year, dated from today. Nothing real is used. It replaces what is on this device.</p>
+          <button className={btn} onClick={() => { if (confirm('Replace all data on this device with made-up presentation data?')) void run('Presentation demo loaded. Open Overview to see it.', async () => { await loadShowcaseData(); setFilters({ preset: '12m', service: 'All', dest: null }) }) }}>Load presentation demo</button>
+          {msg && <p className="mt-2 text-sm text-slate-600">{msg}</p>}
+        </Section>
+      )}
 
       {auth.mode === 'local' && (
         <Section icon="alert" title="Restricted actions" danger>
