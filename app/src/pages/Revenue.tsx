@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useApp } from '../state'
 import { monthKey, monthsFor, pctDelta, sumBy, totals, type Sale } from '../analytics'
-import { Card, Chart, Loading, Page, Seg, Stat, inp } from '../components/ui'
+import { Card, Chart, Loading, Seg, inp } from '../components/ui'
+import { Chip, Hint, IconTile, PageHead, ProgressRow, StatTile, type Tone } from '../components/kit'
 
 const DIMS = ['Service', 'Country', 'Duration', 'Destination', 'Origin'] as const
 type Dim = (typeof DIMS)[number]
@@ -16,6 +17,7 @@ const SEGMENTS: Record<string, (s: Sale) => boolean> = {
   Thailand: (s) => s.country === 'Thailand', Bhutan: (s) => s.country === 'Bhutan',
   'Myanmar-outbound tickets': (s) => s.service === 'Air ticket' && /^(Yangon|Mandalay)/.test(s.label),
 }
+const TONES: Tone[] = ['brand', 'indigo', 'amber', 'sky', 'rose', 'emerald']
 
 export default function Revenue() {
   const { data, sales, prevSales, scoped, money, filters, setFilters } = useApp()
@@ -27,27 +29,49 @@ export default function Revenue() {
 
   const cur = totals(sales), prev = totals(prevSales)
   const agg = sumBy(sales, dimKey[dim])
+  const aggPrev = new Map(sumBy(prevSales, dimKey[dim]).map((x) => [x.key, x[metric]]))
   const months = monthsFor(filters.preset)
   const series = (name: string) => ({
     name, type: 'line', smooth: true,
-    data: months.map((m) => scoped.filter((s) => SEGMENTS[name](s) && monthKey(s.date) === m).reduce((x, s) => x + s[metric], 0)),
+    data: months.map((m) => scoped.filter((s) => SEGMENTS[name]!(s) && monthKey(s.date) === m).reduce((x, s) => x + s[metric], 0)),
   })
-  const A = totals(scoped.filter(SEGMENTS[a])), B = totals(scoped.filter(SEGMENTS[b]))
+  const A = totals(scoped.filter(SEGMENTS[a]!)), B = totals(scoped.filter(SEGMENTS[b]!))
   const noPrev = filters.preset === 'all' || prev.count < cur.count * 0.3
+  const top = [...agg].sort((x, y) => y[metric] - x[metric])
+  const topVal = top[0]?.[metric] ?? 0
+  const total = top.reduce((s, x) => s + x[metric], 0)
+  const marginPct = (t: ReturnType<typeof totals>) => ((t.margin / (t.revenue || 1)) * 100).toFixed(1)
 
   return (
-    <Page title="Revenue & comparison" sub="Click any bar to drill into a destination; compare any two segments head-to-head.">
+    <div className="space-y-4">
+      <PageHead eyebrow="Financial overview" title="Revenue" sub="Where the money comes from, and how two parts compare." />
+
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Stat label="Revenue" value={money(cur.revenue, true)} delta={noPrev ? undefined : pctDelta(cur.revenue, prev.revenue)} />
-        <Stat label="Margin" value={money(cur.margin, true)} delta={noPrev ? undefined : pctDelta(cur.margin, prev.margin)} />
-        <Stat label="Avg sale" value={money(cur.count ? cur.revenue / cur.count : 0)} />
-        <Stat label="Transactions" value={String(cur.count)} delta={noPrev ? undefined : pctDelta(cur.count, prev.count)} />
+        <StatTile label="Gross revenue" value={money(cur.revenue, true)} icon="revenue" tone="brand" delta={noPrev ? undefined : pctDelta(cur.revenue, prev.revenue)} note={noPrev ? undefined : 'vs last period'} />
+        <StatTile label="Margin" value={money(cur.margin, true)} icon="overview" tone="emerald" delta={noPrev ? undefined : pctDelta(cur.margin, prev.margin)} note={`${marginPct(cur)}% of revenue`} />
+        <StatTile label="Avg sale" value={money(cur.count ? cur.revenue / cur.count : 0, true)} icon="bookings" tone="indigo" note={`${cur.count} sales`} />
+        <StatTile label="Transactions" value={String(cur.count)} icon="check" tone="sky" delta={noPrev ? undefined : pctDelta(cur.count, prev.count)} note={noPrev ? undefined : 'vs last period'} />
       </div>
 
-      <Card
-        title={`${metric === 'revenue' ? 'Revenue' : 'Margin'} by ${dim.toLowerCase()}`}
-        right={<div className="flex min-w-0 max-w-full flex-wrap gap-2"><Seg options={DIMS} value={dim} onChange={setDim} /><Seg options={['revenue', 'margin'] as const} value={metric} onChange={setMetric} /></div>}
-      >
+      <div className="grid grid-cols-2 gap-3">
+        <label className="min-w-0 rounded-2xl border border-line bg-white p-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Group by
+          <select aria-label="Group by" className={`${inp} mt-1 w-full !text-sm normal-case tracking-normal text-ink`} value={dim} onChange={(e) => setDim(e.target.value as Dim)}>{DIMS.map((d) => <option key={d}>{d}</option>)}</select>
+        </label>
+        <div className="min-w-0 rounded-2xl border border-line bg-white p-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Show
+          <div className="mt-1"><Seg options={['revenue', 'margin'] as const} value={metric} onChange={setMetric} /></div>
+        </div>
+      </div>
+
+      <Card title={`${metric === 'revenue' ? 'Revenue' : 'Margin'} by ${dim.toLowerCase()}`} right={<Chip tone="brand">Total {money(total, true)}</Chip>}>
+        <div className="space-y-3">
+          {top.slice(0, 6).map((x, i) => (
+            <ProgressRow key={x.key} label={x.key} value={money(x[metric], true)} pct={topVal ? (x[metric] / topVal) * 100 : 0} tone={TONES[i % TONES.length]} right={`${total ? ((x[metric] / total) * 100).toFixed(0) : 0}%`} />
+          ))}
+          {!top.length && <p className="text-sm text-slate-400">No sales in this period.</p>}
+        </div>
+      </Card>
+
+      <Card title="Chart">
         <Chart
           height={320}
           onClick={(p) => dim === 'Destination' && setFilters({ dest: p.name })}
@@ -58,25 +82,47 @@ export default function Revenue() {
             series: [{ type: 'bar', data: agg.map((x) => x[metric]), itemStyle: { borderRadius: [6, 6, 0, 0] } }],
           }}
         />
-        {dim === 'Destination' && <p className="text-xs text-slate-500">Tip: click a destination bar to filter the entire app to it.</p>}
+        {dim === 'Destination' && <p className="text-xs text-slate-500">Tip: tap a destination bar to filter the whole app to it.</p>}
       </Card>
 
-      <Card
-        title="Head-to-head"
+      {!noPrev && top.length > 0 && (
+        <section className="space-y-2">
+          <h2 className="px-1 text-base font-bold text-ink">{dim} vs last period</h2>
+          <div className="grid gap-2 md:grid-cols-2">
+            {top.slice(0, 6).map((x) => {
+              const before = aggPrev.get(x.key) ?? 0
+              const d = before ? pctDelta(x[metric], before) : undefined
+              return (
+                <div key={x.key} className="flex items-center gap-3 rounded-2xl border border-line bg-white p-3 shadow-sm">
+                  <IconTile name="overview" tone="brand" />
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate font-semibold text-ink">{x.key}</div>
+                    <div className="num text-sm text-slate-500">Now <b className="text-ink">{money(x[metric], true)}</b> · before {money(before, true)}</div>
+                  </div>
+                  {d !== undefined ? <Chip tone={d >= 0 ? 'emerald' : 'rose'}>{d >= 0 ? '▲' : '▼'} {Math.abs(d).toFixed(1)}%</Chip> : <Chip>new</Chip>}
+                </div>
+              )
+            })}
+          </div>
+        </section>
+      )}
+
+      <Card title="Head-to-head"
         right={
           <div className="flex w-full items-center gap-2 text-sm sm:w-auto">
-            <select className={`${inp} flex-1`} value={a} onChange={(e) => setA(e.target.value)}>{Object.keys(SEGMENTS).map((k) => <option key={k}>{k}</option>)}</select>
-            <span>vs</span>
-            <select className={`${inp} flex-1`} value={b} onChange={(e) => setB(e.target.value)}>{Object.keys(SEGMENTS).map((k) => <option key={k}>{k}</option>)}</select>
+            <select aria-label="First segment" className={`${inp} flex-1`} value={a} onChange={(e) => setA(e.target.value)}>{Object.keys(SEGMENTS).map((k) => <option key={k}>{k}</option>)}</select>
+            <span className="font-semibold text-slate-500">vs</span>
+            <select aria-label="Second segment" className={`${inp} flex-1`} value={b} onChange={(e) => setB(e.target.value)}>{Object.keys(SEGMENTS).map((k) => <option key={k}>{k}</option>)}</select>
           </div>
         }
       >
         <div className="mb-3 grid grid-cols-2 gap-3 text-sm">
-          {[[a, A], [b, B]].map(([n, t]) => (
-            <div key={n as string} className="rounded-xl bg-slate-50 p-3">
-              <div className="font-medium">{n as string}</div>
-              <div>{money((t as ReturnType<typeof totals>).revenue)} revenue · {money((t as ReturnType<typeof totals>).margin)} margin</div>
-              <div className="text-slate-500">{(t as ReturnType<typeof totals>).count} sales · {(((t as ReturnType<typeof totals>).margin / ((t as ReturnType<typeof totals>).revenue || 1)) * 100).toFixed(1)}% margin</div>
+          {([[a, A, 'brand'], [b, B, 'indigo']] as const).map(([n, t, tone]) => (
+            <div key={n} className="min-w-0 rounded-xl bg-sky-soft/50 p-3">
+              <Chip tone={tone}>{n}</Chip>
+              <div className="num mt-2 text-lg font-bold text-ink">{money(t.revenue, true)}</div>
+              <div className="num text-slate-500">{money(t.margin, true)} margin · {marginPct(t)}%</div>
+              <div className="text-slate-500">{t.count} sales</div>
             </div>
           ))}
         </div>
@@ -90,6 +136,7 @@ export default function Revenue() {
           }}
         />
       </Card>
-    </Page>
+      {!sales.length && <Hint icon="search" title="No sales in this period">Pick a wider date range at the top.</Hint>}
+    </div>
   )
 }

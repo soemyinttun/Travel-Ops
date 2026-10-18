@@ -3,7 +3,7 @@ import { deleteLegacyData, readLegacyData } from '../db'
 import { checkBackup, withFreshIds, type CheckResult } from '../importer/validate'
 import { addMany, replaceAll } from '../store'
 import { useAuth, type Role } from '../auth/AuthProvider'
-import { listImports, listProfiles, logImport, setRole, type ImportEntry, type Profile } from '../auth/admin'
+import { listImports, listProfiles, logImport, setRole, usePendingCount, type ImportEntry, type Profile } from '../auth/admin'
 import { requestSync, useSyncStatus } from '../sync/controller'
 import { connection } from '../sync/supabase'
 import { AUTH_METHODS } from '../auth/providers'
@@ -12,18 +12,31 @@ import { backupStatus, downloadBackup } from '../backup'
 import { versionLabel } from '../version'
 import { TABLES } from '../types'
 import { Card, Page, btn, btnGhost, inp } from '../components/ui'
+import { FilterChips, PageHead } from '../components/kit'
+
+type Tab = 'staff' | 'import' | 'history' | 'connection'
 
 export default function Admin() {
   const auth = useAuth()
+  const cloud = auth.mode === 'cloud'
+  const [tab, setTab] = useState<Tab>(cloud ? 'staff' : 'import')
+  const pending = usePendingCount(auth.role === 'admin' && cloud)
   if (auth.role !== 'admin') return <Page title="Admin"><Card><p className="text-sm text-slate-600">Only admins can open this page.</p></Card></Page>
+  const tabs: { value: Tab; label: string; count?: number }[] = [
+    ...(cloud ? [{ value: 'staff' as Tab, label: 'Staff', count: pending || undefined }] : []),
+    { value: 'import', label: 'Import & backup' },
+    ...(cloud ? [{ value: 'history' as Tab, label: 'History' }] : []),
+    { value: 'connection', label: 'Connection' },
+  ]
   return (
-    <Page title="Admin" sub={auth.mode === 'cloud' ? 'Import data and manage staff accounts.' : 'Import data into this device.'}>
-      <ImportCard cloud={auth.mode === 'cloud'} />
-      <BackupCard />
-      {auth.mode === 'cloud' && <StaffCard myEmail={auth.email} />}
-      <ConnectionCard />
-      {auth.mode === 'cloud' && <HistoryCard />}
-    </Page>
+    <div className="space-y-4">
+      <PageHead eyebrow="Admin clearance active" title="Admin" sub={cloud ? 'Import data and manage staff accounts.' : 'Import data into this device.'} />
+      <FilterChips value={tab} onChange={setTab} options={tabs} />
+      {tab === 'import' && <><ImportCard cloud={cloud} /><BackupCard /></>}
+      {tab === 'staff' && cloud && <StaffCard myEmail={auth.email} />}
+      {tab === 'connection' && <ConnectionCard />}
+      {tab === 'history' && cloud && <HistoryCard />}
+    </div>
   )
 }
 
